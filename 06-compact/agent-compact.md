@@ -1,4 +1,4 @@
-# 从零开始理解 Agent（六）：Agent 的"金鱼记忆"问题——上下文压缩
+# 从零开始理解 Agent（六）：Agent 的一次断舍离——上下文压缩
 
 > **「从零开始理解 Agent」系列** —— 从一个极简开源项目 [nanoAgent](https://github.com/sanbuphy/nanoAgent) 出发，逐层拆解 OpenClaw / Claude Code 等 AI Agent 背后的全部核心概念。
 >
