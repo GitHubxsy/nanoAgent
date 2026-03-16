@@ -25,7 +25,7 @@
 | 05 | [05-teams/](./05-teams/) | [从临时工到正式团队——多智能体协作与编排](./05-teams/README.md) | [`agent-teams.py`](./05-teams/agent-teams.py) | 270 行 | 持久 Agent、身份管理、团队通信 |
 | 06 | [06-compact/](./06-compact/) | [Agent 的"金鱼记忆"问题——上下文压缩](./06-compact/README.md) | [`agent-compact.py`](./06-compact/agent-compact.py) | 169 行 | 自动摘要压缩，防止 Context 爆炸 |
 | 07 | [07-safety/](./07-safety/) | [Agent 执行 rm -rf / 怎么办？三道安全防线](./07-safety/README.md) | [`agent-safe.py`](./07-safety/agent-safe.py) | 219 行 | 命令黑名单、人工确认、输出截断 |
-| — | 根目录 | — | [`agent-full.py`](./agent-full.py) | 507 行 | 完整集成版，包含所有能力 |
+| — | [full/](./full/) | [七篇合一](./full/README.md) | [`agent-full.py`](./full/agent-full.py) | 507 行 | 完整集成版，包含所有能力 |
 
 ---
 
@@ -49,7 +49,7 @@
 - 想做 **多 Agent 协作** → [05-teams/](./05-teams/)
 - 担心 **Context 爆满** → [06-compact/](./06-compact/)
 - 担心 **Agent 搞破坏** → [07-safety/](./07-safety/)
-- 想要**一个文件搞定所有** → [`agent-full.py`](./agent-full.py)
+- 想要**一个文件搞定所有** → [full/](./full/)
 
 ### 路径 C：只看代码
 
@@ -92,7 +92,7 @@ python 01-essence/agent.py "列出当前目录下所有 Python 文件"
 python 02-memory/agent-plus.py "统计代码行数并记住结果"
 
 # 完整版（集成所有特性）
-python agent-full.py "重构 hello.py，添加类型注解和单元测试"
+python full/agent-full.py "重构 hello.py，添加类型注解和单元测试"
 ```
 
 ---
