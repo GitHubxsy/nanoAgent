@@ -3,7 +3,7 @@ agent-subagent.py - 最简 SubAgent 实现
 核心思路：subagent 就是一个工具，调用时启动独立的 Agent 循环
 
 用法:
-  python agent-subagent.py "创建一个 TODO 应用，包含 Python 后端和 HTML 前端"
+  python 04-subagent/agent-subagent.py "创建一个 TODO 应用，包含 Python 后端和 HTML 前端"
 """
 
 import os
@@ -185,8 +185,8 @@ def run(task):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python agent-subagent.py 'your task'")
+        print("Usage: python 04-subagent/agent-subagent.py 'your task'")
         print("\nExample:")
-        print("  python agent-subagent.py '创建一个 TODO 应用，包含 Python 后端和 HTML 前端'")
+        print("  python 04-subagent/agent-subagent.py '创建一个 TODO 应用，包含 Python 后端和 HTML 前端'")
         sys.exit(1)
     run(" ".join(sys.argv[1:]))

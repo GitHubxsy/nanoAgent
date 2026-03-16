@@ -8,7 +8,7 @@ Teams 是真正的团队，需要三样东西:
   3. 通信通道 —— Agent 之间可以互相发消息，而不只是贴公告板
 
 用法:
-  python agent-teams.py "创建一个 TODO 应用，包含 Python 后端和 HTML 前端"
+  python 05-teams/agent-teams.py "创建一个 TODO 应用，包含 Python 后端和 HTML 前端"
 """
 
 import os
@@ -258,9 +258,9 @@ def run_team(task):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python agent-teams.py 'your task'")
+        print("Usage: python 05-teams/agent-teams.py 'your task'")
         print("\nExample:")
-        print("  python agent-teams.py '创建一个 TODO 应用，包含 Python 后端和 HTML 前端'")
+        print("  python 05-teams/agent-teams.py '创建一个 TODO 应用，包含 Python 后端和 HTML 前端'")
         print()
         print("三大核心能力:")
         print("  1. 持久智能体 —— Agent 有记忆，多次交互保持上下文")

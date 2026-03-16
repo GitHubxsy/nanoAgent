@@ -1,6 +1,6 @@
 """
 agent-compact.py - 最简上下文压缩 Agent
-基于 agent.py (115行)，核心新增：当对话历史过长时，自动压缩成摘要
+基于 agent-essence.py (115行)，核心新增：当对话历史过长时，自动压缩成摘要
 
 为什么需要压缩？
   Agent 每调用一次工具，messages 就多几条。10 轮循环后可能有 30+ 条消息。
@@ -13,7 +13,7 @@ agent-compact.py - 最简上下文压缩 Agent
   Agent 继续工作，就像人类"记住要点、忘掉细节"一样。
 
 用法:
-  python agent-compact.py "在当前目录下找到所有 Python 文件，统计每个文件的行数，按行数排序，结果写入 report.txt"
+  python 06-compact/agent-compact.py "在当前目录下找到所有 Python 文件，统计每个文件的行数，按行数排序，结果写入 report.txt"
 """
 
 import os
@@ -29,7 +29,7 @@ client = OpenAI(
 
 MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
 
-# ==================== 工具（和 agent.py 一样） ====================
+# ==================== 工具（和 agent-essence.py 一样） ====================
 
 tools = [
     {"type": "function", "function": {"name": "execute_bash", "description": "Execute a bash command on the system", "parameters": {"type": "object", "properties": {"command": {"type": "string", "description": "The bash command to execute"}}, "required": ["command"]}}},
@@ -122,7 +122,7 @@ def compact_messages(messages):
         *recent_messages
     ]
 
-# ==================== Agent 核心循环（在 agent.py 基础上加了压缩） ====================
+# ==================== Agent 核心循环（在 agent-essence.py 基础上加了压缩） ====================
 
 def run_agent(user_message, max_iterations=30):
     messages = [
@@ -159,9 +159,9 @@ def run_agent(user_message, max_iterations=30):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python agent-compact.py 'your task'")
+        print("Usage: python 06-compact/agent-compact.py 'your task'")
         print("\nExample:")
-        print("  python agent-compact.py '找到所有 Python 文件，统计行数，按行数排序，写入 report.txt'")
+        print("  python 06-compact/agent-compact.py '找到所有 Python 文件，统计行数，按行数排序，写入 report.txt'")
         print()
         print("当对话超过 20 条消息时，自动压缩旧历史为摘要，Agent 可以持续工作不会撑爆 context window。")
         sys.exit(1)

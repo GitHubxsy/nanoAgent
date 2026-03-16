@@ -270,7 +270,7 @@ if __name__ == "__main__":
     if use_plan:
         sys.argv.remove("--plan")
     if len(sys.argv) < 2:
-        print("Usage: python agent-claudecode.py [--plan] 'your task'")
+        print("Usage: python 03-skills-mcp/agent-skills-mcp.py [--plan] 'your task'")
         print("  --plan: Enable task planning")
         print("\nFeatures: Memory, Rules, Skills, MCP, Plan tool")
         sys.exit(1)

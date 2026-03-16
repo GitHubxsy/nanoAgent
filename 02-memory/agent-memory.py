@@ -199,7 +199,7 @@ if __name__ == "__main__":
     if use_plan:
         sys.argv.remove("--plan")
     if len(sys.argv) < 2:
-        print("Usage: python agent-plus.py [--plan] 'your task here'")
+        print("Usage: python 02-memory/agent-memory.py [--plan] 'your task here'")
         print("  --plan: Enable task planning and decomposition")
         sys.exit(1)
     task = " ".join(sys.argv[1:])

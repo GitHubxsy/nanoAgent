@@ -11,9 +11,9 @@ agent-full.py - 七篇合一的完整 Agent
   第七篇: 安全防线 (黑名单 + 用户确认 + 输出截断 + Hook 管道)
 
 用法:
-  python agent-full.py "你的任务"
-  python agent-full.py --auto "你的任务"      # 跳过用户确认
-  python agent-full.py --team "你的任务"       # 使用多智能体团队模式
+  python full/agent-full.py "你的任务"
+  python full/agent-full.py --auto "你的任务"      # 跳过用户确认
+  python full/agent-full.py --team "你的任务"       # 使用多智能体团队模式
 """
 
 import os
@@ -488,7 +488,7 @@ if __name__ == "__main__":
             sys.argv.remove(flag)
 
     if len(sys.argv) < 2:
-        print("Usage: python agent-full.py [--auto] [--team] 'your task'")
+        print("Usage: python full/agent-full.py [--auto] [--team] 'your task'")
         print()
         print("Modes:")
         print("  (default)  单 Agent: 工具+记忆+Rules+Skills+MCP+SubAgent+压缩+安全")
@@ -496,8 +496,8 @@ if __name__ == "__main__":
         print("  --auto     跳过用户确认（仅用于信任环境）")
         print()
         print("Example:")
-        print("  python agent-full.py '列出当前目录的 Python 文件并统计行数'")
-        print("  python agent-full.py --team '创建一个 TODO 应用，包含后端和前端'")
+        print("  python full/agent-full.py '列出当前目录的 Python 文件并统计行数'")
+        print("  python full/agent-full.py --team '创建一个 TODO 应用，包含后端和前端'")
         sys.exit(1)
 
     task = " ".join(sys.argv[1:])

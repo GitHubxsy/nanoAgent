@@ -1,14 +1,14 @@
 """
 agent-safe.py - 最简安全 Agent
-基于 agent.py (115行)，核心新增三道安全防线:
+基于 agent-essence.py (115行)，核心新增三道安全防线:
 
   1. 命令黑名单 —— 拦截危险命令（rm -rf、mkfs、dd 等）
   2. 用户确认 —— 高风险操作前必须人类确认
   3. 输出截断 —— 防止工具返回结果撑爆 context window
 
 用法:
-  python agent-safe.py "列出当前目录的文件"
-  python agent-safe.py --auto "统计 Python 文件行数"   # 跳过确认（仅用于信任场景）
+  python 07-safety/agent-safe.py "列出当前目录的文件"
+  python 07-safety/agent-safe.py --auto "统计 Python 文件行数"   # 跳过确认（仅用于信任场景）
 """
 
 import os
@@ -167,7 +167,7 @@ available_functions = {
     "write_file": write_file
 }
 
-# ==================== Agent 核心循环（和 agent.py 一样） ====================
+# ==================== Agent 核心循环（和 agent-essence.py 一样） ====================
 
 def run_agent(user_message, max_iterations=20):
     messages = [
@@ -204,10 +204,10 @@ if __name__ == "__main__":
         print("[模式] 自动确认已开启（跳过用户确认）\n")
 
     if len(sys.argv) < 2:
-        print("Usage: python agent-safe.py [--auto] 'your task'")
+        print("Usage: python 07-safety/agent-safe.py [--auto] 'your task'")
         print("\nExample:")
-        print("  python agent-safe.py '列出当前目录的文件'")
-        print("  python agent-safe.py --auto '统计 Python 文件行数'")
+        print("  python 07-safety/agent-safe.py '列出当前目录的文件'")
+        print("  python 07-safety/agent-safe.py --auto '统计 Python 文件行数'")
         print()
         print("三道安全防线:")
         print("  1. 命令黑名单 —— 自动拦截 rm -rf、mkfs 等危险命令")
