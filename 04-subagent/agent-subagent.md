@@ -2,13 +2,13 @@
 
 > **「从零开始理解 Agent」系列** —— 通过一个不到 300 行的开源项目 [nanoAgent](https://github.com/sanbuphy/nanoAgent)，逐层拆解 OpenClaw / Claude Code 等 AI Agent 背后的全部核心概念。
 >
-> - [第一篇：底层原理，只有 115 行](./nanoAgent-01-essence.md) —— 工具 + 循环
-> - [第二篇：记忆与规划](./nanoAgent-02-memory.md) —— 182 行
-> - [第三篇：Rules、Skills 与 MCP](./nanoAgent-03-skills-mcp.md) —— 265 行
+> - [第一篇：底层原理，只有 115 行](../01-essence/agent-essence.md) —— 工具 + 循环
+> - [第二篇：记忆与规划](../02-memory/agent-memory.md) —— 182 行
+> - [第三篇：Rules、Skills 与 MCP](../03-skills-mcp/agent-skills-mcp.md) —— 265 行
 > - **第四篇：最简 SubAgent 实现**（本文）—— 新开发，192 行
-> - [第五篇：多智能体协作与编排](./nanoAgent-05-teams.md) —— 270 行
-> - [第六篇：上下文压缩](./nanoAgent-06-compact.md) —— 169 行
-> - [第七篇：安全与权限控制](./nanoAgent-07-safe.md) —— 219 行
+> - [第五篇：多智能体协作与编排](../05-teams/agent-teams.md) —— 270 行
+> - [第六篇：上下文压缩](../06-compact/agent-compact.md) —— 169 行
+> - [第七篇：安全与权限控制](../07-safety/agent-safe.md) —— 219 行
 
 前三篇，我们一路把 Agent 从"会用工具"进化到了"有记忆、会规划、能扩展"。但到目前为止，所有版本都有一个共同特点：**永远只有一个 Agent 在干活**。
 
@@ -20,7 +20,7 @@
 
 > **关于本篇代码的说明：**
 >
-> 前三篇分析的 `agent.py`、`agent-plus.py`、`agent-claudecode.py` 都来自 nanoAgent 原始仓库。本篇的 `agent-subagent.py` 是我们在 `agent-claudecode.py` 基础上**新开发的文件**（[GitHub 源码](https://github.com/GitHubxsy/nanoAgent/blob/main/agent-subagent.py)），专门用来演示 SubAgent 机制。
+> 前三篇分析的 `agent-essence.py`、`agent-memory.py`、`agent-skills-mcp.py` 都来自 nanoAgent 原始仓库。本篇的 `agent-subagent.py` 是我们在 `agent-skills-mcp.py` 基础上**新开发的文件**（[GitHub 源码](https://github.com/GitHubxsy/nanoAgent/blob/main/04-subagent/agent-subagent.py)），专门用来演示 SubAgent 机制。
 >
 > 你可能注意到它只有 192 行，反而比第三篇的 265 行更少了。这是刻意为之——为了让 SubAgent 的核心逻辑尽可能通俗易懂，我们**去掉了 Plan（规划）功能**，只保留基础工具 + 记忆 + SubAgent。少即是多：去掉 Plan 相关的全局变量、递归调用和特殊分支后，核心循环 `run_agent` 从 35 行简化到了 12 行，整个代码一目了然。
 
@@ -243,7 +243,7 @@ sub_tools = [t for t in tools if t["function"]["name"] != "subagent"]
 假设用户输入：
 
 ```bash
-python agent-subagent.py "创建一个简单的 TODO 应用，包含 Python 后端和 HTML 前端"
+python 04-subagent/agent-subagent.py "创建一个简单的 TODO 应用，包含 Python 后端和 HTML 前端"
 ```
 
 终端输出大致如下：
@@ -328,12 +328,12 @@ SubAgent 和 Plan 最大的区别：
 
 | 篇 | 文件 | 核心主题 | 一句话总结 |
 |----|------|---------|-----------|
-| 一 | agent.py (115行) | 工具 + 循环 | Agent 的最小本质——LLM 是大脑，代码是手脚 |
-| 二 | agent-plus.py (182行) | 记忆 + 规划 | 时间维度——记住过去、规划未来 |
-| 三 | agent-claudecode.py (265行) | Rules + Skills + MCP | 空间维度——扩展知识与工具 |
+| 一 | agent-essence.py (115行) | 工具 + 循环 | Agent 的最小本质——LLM 是大脑，代码是手脚 |
+| 二 | agent-memory.py (182行) | 记忆 + 规划 | 时间维度——记住过去、规划未来 |
+| 三 | agent-skills-mcp.py (265行) | Rules + Skills + MCP | 空间维度——扩展知识与工具 |
 | 四 | agent-subagent.py (192行) ⭐新 | SubAgent | 协作维度——给 Agent 找帮手 |
 
-> 注：前三个文件来自 [nanoAgent 原始仓库](https://github.com/sanbuphy/nanoAgent)。第四个文件是本文新开发的（[GitHub 源码](https://github.com/GitHubxsy/nanoAgent/blob/main/agent-subagent.py)），为了聚焦 SubAgent 核心逻辑，刻意去掉了 Plan 功能，因此行数反而比第三篇少。这不是倒退，而是做减法——**用最干净的代码展示最核心的概念**。
+> 注：前三个文件来自 [nanoAgent 原始仓库](https://github.com/sanbuphy/nanoAgent)。第四个文件是本文新开发的（[GitHub 源码](https://github.com/GitHubxsy/nanoAgent/blob/main/04-subagent/agent-subagent.py)），为了聚焦 SubAgent 核心逻辑，刻意去掉了 Plan 功能，因此行数反而比第三篇少。这不是倒退，而是做减法——**用最干净的代码展示最核心的概念**。
 
 四个维度叠加，就构成了 OpenClaw、Claude Code、Cursor Agent、Devin 等产品的完整架构。
 
@@ -341,8 +341,8 @@ SubAgent 和 Plan 最大的区别：
 
 但 SubAgent 的"一次性"本质也带来了局限：它们之间无法通信，不记得上次做了什么，无法被多次调用。当任务需要真正的团队协作——你写完我来接、测出 bug 你去改、改完我再测——就需要把临时工升级为正式员工。
 
-这就是 [第五篇：多智能体协作与编排](./nanoAgent-05-teams.md) 的主题：用两个类（`Agent` + `Team`）实现持久记忆、身份管理和通信通道。
+这就是 [第五篇：多智能体协作与编排](../05-teams/agent-teams.md) 的主题：用两个类（`Agent` + `Team`）实现持久记忆、身份管理和通信通道。
 
 ---
 
-*本文基于 [sanbuphy/nanoAgent](https://github.com/sanbuphy/nanoAgent) 的架构扩展。完整系列：[第一篇：底层原理](./nanoAgent-01-essence.md) → [第二篇：记忆与规划](./nanoAgent-02-memory.md) → [第三篇：Rules、Skills 与 MCP](./nanoAgent-03-skills-mcp.md) → 第四篇：SubAgent（本文） → [第五篇：多智能体协作](./nanoAgent-05-teams.md)*
+*本文基于 [sanbuphy/nanoAgent](https://github.com/sanbuphy/nanoAgent) 的架构扩展。完整系列：[第一篇：底层原理](../01-essence/agent-essence.md) → [第二篇：记忆与规划](../02-memory/agent-memory.md) → [第三篇：Rules、Skills 与 MCP](../03-skills-mcp/agent-skills-mcp.md) → 第四篇：SubAgent（本文） → [第五篇：多智能体协作](../05-teams/agent-teams.md)*

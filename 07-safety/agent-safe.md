@@ -2,12 +2,12 @@
 
 > **「从零开始理解 Agent」系列** —— 从一个极简开源项目 [nanoAgent](https://github.com/sanbuphy/nanoAgent) 出发，逐层拆解 OpenClaw / Claude Code 等 AI Agent 背后的全部核心概念。
 >
-> - [第一篇：底层原理，只有 115 行](./nanoAgent-01-essence.md) —— 工具 + 循环
-> - [第二篇：记忆与规划](./nanoAgent-02-memory.md) —— 182 行
-> - [第三篇：Rules、Skills 与 MCP](./nanoAgent-03-skills-mcp.md) —— 265 行
-> - [第四篇：SubAgent 子智能体](./nanoAgent-04-subagent.md) —— 192 行
-> - [第五篇：多智能体协作与编排](./nanoAgent-05-teams.md) —— 270 行
-> - [第六篇：上下文压缩](./nanoAgent-06-compact.md) —— 169 行
+> - [第一篇：底层原理，只有 115 行](../01-essence/agent-essence.md) —— 工具 + 循环
+> - [第二篇：记忆与规划](../02-memory/agent-memory.md) —— 182 行
+> - [第三篇：Rules、Skills 与 MCP](../03-skills-mcp/agent-skills-mcp.md) —— 265 行
+> - [第四篇：SubAgent 子智能体](../04-subagent/agent-subagent.md) —— 192 行
+> - [第五篇：多智能体协作与编排](../05-teams/agent-teams.md) —— 270 行
+> - [第六篇：上下文压缩](../06-compact/agent-compact.md) —— 169 行
 > - **第七篇：安全与权限控制**（本文）—— 219 行
 
 前六篇我们一直在给 Agent 加能力。但有一个危险我们一直视而不见：**Agent 手里有一把没有保险的枪。**
@@ -16,11 +16,11 @@
 
 这不是理论风险。只要你让 Agent 干过真正的活，一定遇到过它试图做一些你没预料到的事情。
 
-今天我们回到 agent.py 的基础上，加上三道安全防线，让 Agent 从"裸奔"变成"有保险的"。
+今天我们回到 agent-essence.py 的基础上，加上三道安全防线，让 Agent 从"裸奔"变成"有保险的"。
 
 > **关于本篇代码的说明：**
 >
-> 和第四、五、六篇一样，本篇的 `agent-safe.py` 是**新开发的文件**（[GitHub 源码](https://github.com/GitHubxsy/nanoAgent/blob/main/agent-safe.py)），基于第一篇的 `agent.py`，只新增了三道安全防线。
+> 和第四、五、六篇一样，本篇的 `agent-safe.py` 是**新开发的文件**（[GitHub 源码](https://github.com/GitHubxsy/nanoAgent/blob/main/07-safety/agent-safe.py)），基于第一篇的 `agent-essence.py`，只新增了三道安全防线。
 
 ---
 
@@ -225,7 +225,7 @@ def execute_bash(command):
 ## 七、实际运行效果
 
 ```bash
-$ python agent-safe.py "清理 /tmp 下的所有文件"
+$ python 07-safety/agent-safe.py "清理 /tmp 下的所有文件"
 ```
 
 ```
@@ -354,4 +354,4 @@ def execute_tool(name, args):
 
 ---
 
-*本文基于 agent-safe.py（[GitHub 源码](https://github.com/GitHubxsy/nanoAgent/blob/main/agent-safe.py)）分析。完整系列：[第一篇](./nanoAgent-01-essence.md) → [第二篇](./nanoAgent-02-memory.md) → [第三篇](./nanoAgent-03-skills-mcp.md) → [第四篇](./nanoAgent-04-subagent.md) → [第五篇](./nanoAgent-05-teams.md) → [第六篇](./nanoAgent-06-compact.md) → 第七篇（本文）*
+*本文基于 agent-safe.py（[GitHub 源码](https://github.com/GitHubxsy/nanoAgent/blob/main/07-safety/agent-safe.py)）分析。完整系列：[第一篇](../01-essence/agent-essence.md) → [第二篇](../02-memory/agent-memory.md) → [第三篇](../03-skills-mcp/agent-skills-mcp.md) → [第四篇](../04-subagent/agent-subagent.md) → [第五篇](../05-teams/agent-teams.md) → [第六篇](../06-compact/agent-compact.md) → 第七篇（本文）*
