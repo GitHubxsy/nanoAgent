@@ -40,9 +40,9 @@ set OPENAI_MODEL=gpt-4o-mini
 ## 快速开始
 
 ```bash
-python 01-essence/agent.py "列出当前目录下所有 python 文件"
-python 01-essence/agent.py "创建一个名为 hello.txt 的文件，内容是 'Hello World'"
-python 01-essence/agent.py "读取 README.md 的内容"
+python 01-essence/agent-essence.py "列出当前目录下所有 python 文件"
+python 01-essence/agent-essence.py "创建一个名为 hello.txt 的文件，内容是 'Hello World'"
+python 01-essence/agent-essence.py "读取 README.md 的内容"
 ```
 
 ## 工作原理
@@ -84,13 +84,13 @@ for _ in range(max_iterations):
 
 ```bash
 # 系统操作
-python 01-essence/agent.py "当前目录是什么，里面有哪些文件？"
+python 01-essence/agent-essence.py "当前目录是什么，里面有哪些文件？"
 
 # 文件操作
-python 01-essence/agent.py "创建一个打印 hello world 的 python 脚本"
+python 01-essence/agent-essence.py "创建一个打印 hello world 的 python 脚本"
 
 # 组合任务
-python 01-essence/agent.py "找到所有 .py 文件并统计总代码行数"
+python 01-essence/agent-essence.py "找到所有 .py 文件并统计总代码行数"
 ```
 
 ---

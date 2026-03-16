@@ -35,7 +35,7 @@
 
 ```
 01-essence → 02-memory → 03-skills-mcp → 04-subagent → 05-teams → 06-compact → 07-safety
-  agent.py    plus.py     cc.py            sub.py        teams.py   compact.py   safe.py
+  essence.py  memory.py   skills-mcp.py    subagent.py   teams.py   compact.py   safe.py
 ```
 
 每篇都建立在前一篇基础上，逐层添加新特性。
