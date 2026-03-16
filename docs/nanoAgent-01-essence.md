@@ -5,6 +5,10 @@
 > - **第一篇：底层原理，只有 115 行**（本文）—— 工具 + 循环
 > - [第二篇：记忆与规划](./nanoAgent-02-memory.md) —— 182 行
 > - [第三篇：Rules、Skills 与 MCP](./nanoAgent-03-skills-mcp.md) —— 265 行
+> - [第四篇：SubAgent 子智能体](./nanoAgent-04-subagent.md) —— 192 行
+> - [第五篇：多智能体协作与编排](./nanoAgent-05-teams.md) —— 270 行
+> - [第六篇：上下文压缩](./nanoAgent-06-compact.md) —— 169 行
+> - [第七篇：安全与权限控制](./nanoAgent-07-safe.md) —— 219 行
 
 很多人用过 ChatGPT、Claude 这样的对话式 AI，也听说过 AI Agent 这个概念。最近 OpenClaw、Claude Code 这类 Coding Agent 火遍了整个开发者圈子——它们能自主读代码、改代码、跑测试，完成以前需要人类手动操作的整个开发流程。
 
