@@ -95,6 +95,24 @@ python agent.py "找到所有 .py 文件并统计总代码行数"
 
 ---
 
+## 系列文章
+
+**「从零开始理解 Agent」** —— 7 篇文章，7 个代码文件，逐层拆解。
+
+| # | 文章 | 代码 | 行数 |
+|---|------|------|------|
+| 01 | [底层原理，只有 115 行](./docs/nanoAgent-01-essence.md) | `agent.py` | 103 |
+| 02 | [记忆与规划](./docs/nanoAgent-02-memory.md) | `agent-plus.py` | 206 |
+| 03 | [Rules、Skills 与 MCP](./docs/nanoAgent-03-skills-mcp.md) | `agent-claudecode.py` | 282 |
+| 04 | [SubAgent 子智能体](./docs/nanoAgent-04-subagent.md) | `agent-subagent.py` | 192 |
+| 05 | [多智能体团队协作](./docs/nanoAgent-05-teams.md) | `agent-teams.py` | 270 |
+| 06 | [上下文压缩](./docs/nanoAgent-06-compact.md) | `agent-compact.py` | 169 |
+| 07 | [三道安全防线](./docs/nanoAgent-07-safe.md) | `agent-safe.py` | 219 |
+
+→ [系列导读与目录](./docs/README.md)
+
+---
+
 ## 许可证
 
 MIT

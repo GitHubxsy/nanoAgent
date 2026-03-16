@@ -1,50 +1,116 @@
-# 从零开始理解 Agent（四）：一次性子智能体，192 行
+# 从零开始理解 Agent（四）：给 Agent 找个帮手——最简 SubAgent 实现
 
-> **「从零开始理解 Agent」系列**
+> **「从零开始理解 Agent」系列** —— 通过一个不到 300 行的开源项目 [nanoAgent](https://github.com/sanbuphy/nanoAgent)，逐层拆解 OpenClaw / Claude Code 等 AI Agent 背后的全部核心概念。
 >
-> - [第一篇：底层原理，只有 103 行](./nanoAgent-01-essence.md)
-> - [第二篇：记忆与规划](./nanoAgent-02-memory.md)
-> - [第三篇：Rules、Skills 与 MCP](./nanoAgent-03-rules-skills-mcp.md)
-> - **第四篇：一次性子智能体**（本文）—— 192 行
-> - [第五篇：多智能体团队](./nanoAgent-05-teams.md)
-> - [第六篇：上下文压缩](./nanoAgent-06-compact.md)
-> - [第七篇：安全防线](./nanoAgent-07-safety.md)
+> - [第一篇：底层原理，只有 115 行](./nanoAgent-01-essence.md) —— 工具 + 循环
+> - [第二篇：记忆与规划](./nanoAgent-02-memory.md) —— 182 行
+> - [第三篇：Rules、Skills 与 MCP](./nanoAgent-03-skills-mcp.md) —— 265 行
+> - **第四篇：最简 SubAgent 实现**（本文）—— 新开发，192 行
+> - [第五篇：多智能体协作与编排](./nanoAgent-05-teams.md) —— 270 行
+> - [第六篇：上下文压缩](./nanoAgent-06-compact.md) —— 169 行
+> - [第七篇：安全与权限控制](./nanoAgent-07-safe.md) —— 219 行
+
+前三篇，我们一路把 Agent 从"会用工具"进化到了"有记忆、会规划、能扩展"。但到目前为止，所有版本都有一个共同特点：**永远只有一个 Agent 在干活**。
+
+想象一下这个场景：你让 Agent "搭建一个博客系统，前端用 React，后端用 FastAPI，数据库用 SQLite"。一个 Agent 要同时精通前端、后端、数据库——它可以做到，但很容易顾此失彼，上下文越来越长，后面写前端的时候把前面后端的细节忘了。
+
+现实中我们怎么解决这类问题？**找帮手，分工合作。**
+
+这就是 SubAgent（子智能体）的核心思想：主 Agent 当项目经理，把子任务委派给拥有不同专业身份的 SubAgent，各管一块，互不干扰。
+
+> **关于本篇代码的说明：**
+>
+> 前三篇分析的 `agent.py`、`agent-plus.py`、`agent-claudecode.py` 都来自 nanoAgent 原始仓库。本篇的 `agent-subagent.py` 是我们在 `agent-claudecode.py` 基础上**新开发的文件**（[GitHub 源码](https://github.com/GitHubxsy/nanoAgent/blob/main/agent-subagent.py)），专门用来演示 SubAgent 机制。
+>
+> 你可能注意到它只有 192 行，反而比第三篇的 265 行更少了。这是刻意为之——为了让 SubAgent 的核心逻辑尽可能通俗易懂，我们**去掉了 Plan（规划）功能**，只保留基础工具 + 记忆 + SubAgent。少即是多：去掉 Plan 相关的全局变量、递归调用和特殊分支后，核心循环 `run_agent` 从 35 行简化到了 12 行，整个代码一目了然。
 
 ---
 
-前三篇我们的 Agent 一直是单线程的——同一个 LLM、同一个 messages 列表、同一个工具集，串行处理所有事情。这种设计简单，但面对复杂任务会暴露一个问题：
+## 一、一个生活类比秒懂 SubAgent
 
-**上下文污染。**
+```
+之前（一个人干所有活）:
 
-想象你让 Agent 同时开发"Python 后端"和"HTML 前端"。如果它在同一个 messages 里混着做，前端的 HTML 代码和后端的 Python 代码会互相干扰，LLM 的注意力被分散，输出质量下降。
+  老板 → "小张，你把前端后端数据库全搞定"
+         小张（一个人扛所有）
+         - 写后端 API...
+         - 写前端页面...（等等，后端那个接口叫啥来着？）
+         - 建数据库表...（前端那个字段是什么格式？）
 
-解决方案：**SubAgent（子智能体）**——为每个子任务启动独立的 Agent 循环，拥有专属角色和干净的上下文。
 
-对应代码：[`agent-subagent.py`](../agent-subagent.py)（192 行）
+现在（项目经理 + 专人）:
+
+  老板 → 项目经理（主 Agent）
+              │
+              ├── "后端用 FastAPI" → 后端工程师（SubAgent A）
+              ├── "前端用 React"   → 前端工程师（SubAgent B）
+              └── "验证能跑通"     → 测试工程师（SubAgent C）
+
+  每个人只管自己的事，干完把结果交给项目经理汇总。
+```
+
+但要注意一个关键点：这个类比不完全准确。现实中的员工有名字、有工位、有记忆，下次还能找他。**SubAgent 不是这样的。** SubAgent 的生命周期是：
+
+```
+生成 → 接收任务 → 干活（可以调用工具）→ 返回结果摘要 → 消亡
+```
+
+**一次性的。** 没有持久身份，没有跨调用的记忆。主 Agent 第一次派出的"后端工程师"和第二次派出的"后端工程师"之间没有任何关联——它们是两个完全独立的、用完就扔的临时工。
+
+这个"用完即弃"的设计是刻意的：SubAgent 解决的是**单次任务内的分工问题**，不是长期协作问题。它的价值在于给子任务一个干净的上下文和专注的角色，而不是构建一个持久的团队。
 
 ---
 
-## 一、核心思路：SubAgent 就是一个工具
+## 二、在代码里怎么实现？
 
-这是这篇文章最重要的一个认知：
+如果你读过前三篇，这个实现可能会让你惊讶——**核心新增只有大约 30 行代码**。
 
-**SubAgent 不是一个特殊系统，它就是一个工具调用。**
+为什么这么少？因为前三篇已经把所有基础设施搭好了：工具系统（第一篇）、Agent 循环（第一篇）、工具路由表（第一篇）、记忆（第二篇）。SubAgent 要做的，只是**复用这些基础设施，再启动一个独立的 Agent 循环**。
 
-主 Agent 调用 `subagent` 工具，就像调用 `bash` 工具一样。区别是：`bash` 执行的是 shell 命令，`subagent` 启动的是一个完整的 Agent 循环。
+（由于我们去掉了 Plan 功能来保持代码简洁，整个 `agent-subagent.py` 只有 192 行，核心循环干净到只有 12 行——这让 SubAgent 的逻辑完全没有噪音干扰。）
+
+### 2.1 新增一个工具定义
+
+还记得第一篇中的核心洞察吗？
+
+> LLM 本身不会执行任何代码。它只是根据工具说明书，输出一段结构化的 JSON。真正的执行发生在我们的 Python 代码里。
+
+SubAgent 也不例外。我们要做的第一步，就是写一份"工具说明书"告诉 LLM："你有一个叫 subagent 的工具，可以指定角色和任务来委派子任务"：
+
+```python
+{
+    "name": "subagent",
+    "description": "Delegate a task to a specialized sub-agent with its own role and independent context.",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "role": {"type": "string", "description": "The sub-agent's specialty, e.g. 'Python backend developer'"},
+            "task": {"type": "string", "description": "The specific task to delegate"}
+        },
+        "required": ["role", "task"]
+    }
+}
+```
+
+就这么一个 JSON。和 `read`、`write`、`bash` 等工具完全一样的格式——对 LLM 来说，`subagent` 就是"又一个工具"，没有任何特殊之处。
+
+### 2.2 实现 subagent 函数
 
 ```python
 def subagent(role, task):
     """启动一个独立的 Agent 循环，拥有专属角色和独立上下文"""
+    print(f"\n[SubAgent:{role}] 开始: {task}")
 
-    # 独立的 messages，干净的开始
+    # 关键 1：独立的 messages，独立的 system prompt
     sub_messages = [
-        {"role": "system", "content": f"You are a {role}. Be concise and focused."},
+        {"role": "system", "content": f"You are a {role}. Be concise and focused. Only do what is asked."},
         {"role": "user", "content": task}
     ]
 
-    # SubAgent 不能再派 subagent（防无限递归）
+    # 关键 2：排除 subagent 自身，防止无限递归
     sub_tools = [t for t in tools if t["function"]["name"] != "subagent"]
 
+    # 关键 3：一个完整的 Agent 循环（和第一篇的核心循环一模一样）
     for _ in range(10):
         response = client.chat.completions.create(
             model=MODEL, messages=sub_messages, tools=sub_tools
@@ -53,147 +119,230 @@ def subagent(role, task):
         sub_messages.append(message)
 
         if not message.tool_calls:
-            return message.content  # 完成，把结果返回给主 Agent
+            print(f"[SubAgent:{role}] 完成")
+            return message.content
 
-        # 执行工具，追加结果
         for tc in message.tool_calls:
-            ...
+            fn = tc.function.name
+            args = json.loads(tc.function.arguments)
+            print(f"  [SubAgent:{role}] {fn}({args})")
+            result = available_functions[fn](**args)
+            sub_messages.append({"role": "tool", "tool_call_id": tc.id, "content": result})
 
     return "SubAgent: max iterations reached"
 ```
 
-然后把这个函数注册为工具：
+### 2.3 注册到路由表
 
 ```python
-tools = [
-    ...
-    {
-        "type": "function",
-        "function": {
-            "name": "subagent",
-            "description": "Delegate a task to a specialized sub-agent with its own role and independent context.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "role": {"type": "string", "description": "The sub-agent's specialty"},
-                    "task": {"type": "string", "description": "The specific task to delegate"}
-                },
-                "required": ["role", "task"]
-            }
-        }
-    }
+available_functions["subagent"] = subagent
+```
+
+完了。就这些。
+
+---
+
+## 三、等一下——代码里没有调用 subagent 的地方？
+
+如果你仔细看完整个代码，会发现一件"奇怪"的事：**没有任何地方主动调用 `subagent()` 函数**。没有 `if task == "复杂任务": subagent(...)`，没有任何预编排逻辑。
+
+这正是 Agent 和传统程序的根本区别，也是贯穿这整个系列的核心设计思想。
+
+让我用一张图还原 subagent 被调用的完整链路：
+
+```
+用户: "创建一个 TODO 应用，包含 Python 后端和 HTML 前端"
+  │
+  ▼
+主 Agent 的 run_agent() 循环启动
+  │
+  ▼
+(1) 代码把 messages + tools 列表发送给 LLM
+    tools 列表里包含: [read, write, edit, glob, grep, bash, subagent]
+                                                            ^^^^^^^^
+                                                       LLM 看到了这个工具
+  │
+  ▼
+(2) LLM 分析任务，决定委派，返回:
+    {"tool_calls": [{"function": {"name": "subagent",
+                                  "arguments": {"role": "Python backend developer",
+                                                "task": "用 FastAPI 创建..."}}}]}
+  │
+  ▼
+(3) 核心循环中的通用调度代码执行:
+    fn = "subagent"
+    args = {"role": "Python backend developer", "task": "..."}
+    result = available_functions["subagent"](**args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+             走到了我们写的 subagent() 函数！
+  │
+  ▼
+(4) subagent() 内部启动一个全新的 Agent 循环
+    - 独立的 system prompt: "You are a Python backend developer."
+    - 独立的 messages 列表
+    - 可以使用 read/write/edit/bash 等工具
+    - 循环结束后，返回结果文本
+  │
+  ▼
+(5) 结果返回给主 Agent，主 Agent 可能继续派出前端 SubAgent...
+```
+
+关键在第 (3) 步——`available_functions["subagent"](**args)` 这行代码。它和 `available_functions["bash"](**args)` 走的是**完全相同的调度路径**。在核心循环眼里，subagent 和 bash 没有任何区别，都是"LLM 说要调用，那我就执行"。
+
+**控制流在 LLM 手里，不在代码里。** 代码只提供能力（注册工具），LLM 决定何时使用。
+
+---
+
+## 四、三个关键设计决策
+
+### 4.1 为什么 SubAgent 要有独立的 messages？
+
+```python
+# 主 Agent 的 messages（可能已经很长了）
+messages = [system, user, assistant, tool, assistant, tool, ...]
+
+# SubAgent 创建全新的 messages（从零开始）
+sub_messages = [
+    {"role": "system", "content": f"You are a {role}. ..."},
+    {"role": "user", "content": task}
 ]
 ```
 
-就这样。主 Agent 现在可以这样工作：
+还记得第二篇中的"短期记忆"概念吗？`messages` 列表就是 Agent 的短期记忆。如果 SubAgent 共享主 Agent 的 messages，它会看到所有历史——前端 SubAgent 会被后端的代码细节干扰，上下文越来越长，token 开销越来越大。
 
-```
-主 Agent 收到任务："创建 TODO 应用，包含 Python 后端和 HTML 前端"
-    │
-    ├──▶ subagent(role="Python backend developer", task="创建 FastAPI 后端...")
-    │        └──▶ 独立 Agent 循环（读/写/bash...）
-    │        └──▶ 完成，返回结果字符串
-    │
-    └──▶ subagent(role="Frontend developer", task="创建 HTML 前端...")
-             └──▶ 独立 Agent 循环
-             └──▶ 完成，返回结果字符串
-```
+独立的 messages 意味着：**SubAgent 只知道自己的角色和任务，保持专注**。而且这个 `sub_messages` 在函数返回后就被垃圾回收了——SubAgent 没有任何持久记忆，干完活就消亡，下次调用是一个全新的 SubAgent。
 
----
-
-## 二、SubAgent 的四个关键特性
-
-### 1. 专属角色（Role）
-
-SubAgent 的 system prompt 是 `You are a {role}`，角色可以是：
-- `"Python backend developer"`
-- `"DBA specialized in PostgreSQL"`
-- `"Security auditor"`
-
-不同角色让 LLM 产生不同的"人格"——后端开发者关注 API 设计，安全审计员关注漏洞，DBA 关注索引优化。
-
-### 2. 独立上下文（Independent Context）
-
-SubAgent 有自己的 `sub_messages` 列表，和主 Agent 完全隔离。前端代码不会出现在后端 Agent 的上下文里，反之亦然。干净的上下文 = 更好的专注度。
-
-### 3. 一次性（Disposable）
-
-SubAgent 完成任务后就消亡，没有记忆，没有状态。下次调用 `subagent` 是一个全新的 Agent，从空白开始。
-
-这和[第五篇的 Teams](./nanoAgent-05-teams.md) 形成对比——Teams 里的 Agent 是持久的，有身份，有记忆。
-
-### 4. 防递归
+### 4.2 为什么 SubAgent 有不同的 system prompt？
 
 ```python
-# SubAgent 不能再派 subagent（防无限递归）
+# 主 Agent: 协调者
+"You are an orchestrator agent. You can delegate to sub-agents..."
+
+# SubAgent: 专家
+f"You are a {role}. Be concise and focused. Only do what is asked."
+```
+
+第三篇中我们讲了 Rules——用声明式文件定制 Agent 的行为。SubAgent 的 system prompt 是同一个思路的极简版：**通过不同的角色描述，让同一个 LLM 展现出不同的专业行为。**
+
+当 `role` 是 "Python backend developer" 时，LLM 会倾向于用 FastAPI/Flask，写 RESTful 接口；当 `role` 是 "frontend developer" 时，LLM 会倾向于写 HTML/CSS/JavaScript。同一个模型，不同的人格。
+
+### 4.3 为什么要排除 subagent 工具？
+
+```python
 sub_tools = [t for t in tools if t["function"]["name"] != "subagent"]
 ```
 
-这一行代码防止了 SubAgent 继续派生 SubAgent，避免无限递归导致栈溢出和 API 费用爆炸。
+这和第三篇中 `plan` 工具排除自身是同样的思路——**防止无限递归**。如果 SubAgent 也能派出自己的 SubAgent，而那个 SubAgent 又派出自己的……就会无限嵌套下去。
+
+一行代码，一个过滤，问题解决。
 
 ---
 
-## 三、主 Agent vs SubAgent 的分工
+## 五、实际运行效果
 
-```
-主 Agent（Orchestrator / 调度者）
-  │
-  ├── 分析任务，决定哪些部分需要委派
-  ├── 自己处理简单、全局性的工作（读整体结构、整合结果）
-  └── 通过 subagent 工具委派专业子任务
-
-SubAgent（Executor / 执行者）
-  │
-  ├── 专注于一个具体任务
-  ├── 拥有独立的工具访问权限
-  └── 完成后把结果字符串返回给主 Agent
-```
-
-主 Agent 的 system prompt 体现了这个设计：
-
-```python
-system = "You are an orchestrator agent. You can do tasks yourself OR delegate to specialized sub-agents using the 'subagent' tool. Use subagent when a task benefits from focused expertise."
-```
-
----
-
-## 四、运行效果
+假设用户输入：
 
 ```bash
-python agent-subagent.py "创建一个 TODO 应用，包含 Python 后端和 HTML 前端"
+python agent-subagent.py "创建一个简单的 TODO 应用，包含 Python 后端和 HTML 前端"
 ```
 
-输出示例：
+终端输出大致如下：
 
 ```
-[Tool] subagent({"role": "Python backend developer", "task": "..."})
+[Tool] subagent({"role": "Python backend developer", "task": "创建一个 FastAPI ..."})
+
 ==================================================
-[SubAgent:Python backend developer] 开始: ...
+[SubAgent:Python backend developer] 开始: 创建一个 FastAPI 后端...
 ==================================================
-  [SubAgent:Python backend developer] write({"path": "backend/main.py", ...})
+  [SubAgent:Python backend developer] write({"path": "app.py", ...})
   [SubAgent:Python backend developer] bash({"command": "pip install fastapi"})
 [SubAgent:Python backend developer] 完成
 
-[Tool] subagent({"role": "Frontend developer", "task": "..."})
+[Tool] subagent({"role": "frontend developer", "task": "创建一个 HTML 前端..."})
+
 ==================================================
-[SubAgent:Frontend developer] 开始: ...
+[SubAgent:frontend developer] 开始: 创建一个 HTML 前端...
 ==================================================
-  [SubAgent:Frontend developer] write({"path": "frontend/index.html", ...})
-[SubAgent:Frontend developer] 完成
+  [SubAgent:frontend developer] write({"path": "index.html", ...})
+[SubAgent:frontend developer] 完成
+
+已完成 TODO 应用的创建：
+- app.py: FastAPI 后端，包含 GET/POST/DELETE 接口
+- index.html: 前端页面，包含添加和删除功能
 ```
 
-两个 SubAgent 分别在自己的"沙盒"里工作，互不干扰。
+注意两个关键现象：
+
+**主 Agent 自己一行代码都没写。** 它只做了两件事：调用 subagent 委派后端任务，再调用 subagent 委派前端任务，最后汇总结果。
+
+**两个 SubAgent 各管各的。** 后端 SubAgent 在写 app.py 时，前端 SubAgent 还不存在。前端 SubAgent 启动时，有自己全新的上下文，不会被后端的细节干扰。
 
 ---
 
-## 五、SubAgent 的限制：它是临时工
+## 六、SubAgent vs 之前的方案：什么时候用哪个？
 
-SubAgent 解决了**任务隔离**的问题，但它有一个根本局限：**一次性**。
+| 场景 | 推荐方案 | 为什么 |
+|------|---------|--------|
+| "统计目录下的文件数" | 第一篇的基础 Agent | 简单任务，不需要额外机制 |
+| "找到所有 TODO 并整理到文件" | 第二篇的 Plan 多步执行 | 步骤之间有依赖（先搜索、再整理、再写入） |
+| "前端用 React，后端用 FastAPI" | **SubAgent** | 子任务之间相对独立，需要不同专业身份 |
+| "按照项目规范重构代码" | 第三篇的 Rules | 需要行为约束，不需要分工 |
 
-每次调用 `subagent`，都会启动一个全新的循环，不记得上次做过什么。如果你需要"前端开发者和后端开发者反复协商接口设计"，SubAgent 做不到——因为"前端"下次再被调用时是一个新实例，不记得之前的讨论。
+SubAgent 和 Plan 最大的区别：
 
-这个问题需要**持久多智能体（Teams）**来解决，这是[第五篇](./nanoAgent-05-teams.md)的主题。
+| 维度 | Plan（第二篇） | SubAgent（本文） |
+|------|--------------|-----------------|
+| 上下文 | 所有步骤**共享** messages | 每个 SubAgent **独立** messages |
+| 身份 | 同一个 Agent，同一个角色 | 每个 SubAgent **不同的专业角色** |
+| 生命周期 | 步骤间 Agent 持续存在 | **生成 → 干活 → 返回摘要 → 消亡**（一次性） |
+| 跨次记忆 | 步骤 2 能看到步骤 1 的全部细节 | SubAgent B 看不到 SubAgent A 做了什么 |
+| 适合 | 步骤之间有依赖 | 子任务之间相对独立 |
+| 类比 | 一个人按步骤做事 | 叫了个跑腿临时工，干完就走 |
 
 ---
 
-*本文基于 [sanbuphy/nanoAgent](https://github.com/sanbuphy/nanoAgent) 项目分析。*
+## 七、系列总结：从 115 行到完整 Agent 架构
+
+四篇文章，我们从零搭建了一个完整的 Agent 认知体系：
+
+```
+┌───────────────────────────────────────────────────────┐
+│                    Agent 架构全景                       │
+│                                                        │
+│  ┌──────────────┐  第四篇 (本文)                       │
+│  │  SubAgent    │  多智能体协作 ── subagent() 工具      │
+│  ├──────────────┤  第三篇                              │
+│  │  Rules       │  行为约束层 ──── .agent/rules/       │
+│  │  Skills      │  技能知识层 ──── .agent/skills/      │
+│  │  MCP         │  工具扩展层 ──── .agent/mcp.json     │
+│  ├──────────────┤  第二篇                              │
+│  │  Memory      │  持久记忆层 ──── agent_memory.md     │
+│  │  Planning    │  任务分解层 ──── create_plan()       │
+│  ├──────────────┤  第一篇                              │
+│  │  LLM         │  推理决策层 ──── OpenAI API          │
+│  │  Tools       │  工具执行层 ──── bash/read/write     │
+│  │  Loop        │  核心循环层 ──── for + tool_calls    │
+│  └──────────────┘                                      │
+└───────────────────────────────────────────────────────┘
+```
+
+| 篇 | 文件 | 核心主题 | 一句话总结 |
+|----|------|---------|-----------|
+| 一 | agent.py (115行) | 工具 + 循环 | Agent 的最小本质——LLM 是大脑，代码是手脚 |
+| 二 | agent-plus.py (182行) | 记忆 + 规划 | 时间维度——记住过去、规划未来 |
+| 三 | agent-claudecode.py (265行) | Rules + Skills + MCP | 空间维度——扩展知识与工具 |
+| 四 | agent-subagent.py (192行) ⭐新 | SubAgent | 协作维度——给 Agent 找帮手 |
+
+> 注：前三个文件来自 [nanoAgent 原始仓库](https://github.com/sanbuphy/nanoAgent)。第四个文件是本文新开发的（[GitHub 源码](https://github.com/GitHubxsy/nanoAgent/blob/main/agent-subagent.py)），为了聚焦 SubAgent 核心逻辑，刻意去掉了 Plan 功能，因此行数反而比第三篇少。这不是倒退，而是做减法——**用最干净的代码展示最核心的概念**。
+
+四个维度叠加，就构成了 OpenClaw、Claude Code、Cursor Agent、Devin 等产品的完整架构。
+
+而贯穿整个系列的核心设计思想只有一个：**一切能力都是"工具"。** 读文件是工具，写文件是工具，搜索是工具，规划是工具（第三篇），甚至**派出一个子智能体也是工具**（本文）。LLM 通过统一的 Function Calling 协议按需调用它们，代码通过统一的路由表（`available_functions`）执行它们。
+
+但 SubAgent 的"一次性"本质也带来了局限：它们之间无法通信，不记得上次做了什么，无法被多次调用。当任务需要真正的团队协作——你写完我来接、测出 bug 你去改、改完我再测——就需要把临时工升级为正式员工。
+
+这就是 [第五篇：多智能体协作与编排](./nanoAgent-05-teams.md) 的主题：用两个类（`Agent` + `Team`）实现持久记忆、身份管理和通信通道。
+
+---
+
+*本文基于 [sanbuphy/nanoAgent](https://github.com/sanbuphy/nanoAgent) 的架构扩展。完整系列：[第一篇：底层原理](./nanoAgent-01-essence.md) → [第二篇：记忆与规划](./nanoAgent-02-memory.md) → [第三篇：Rules、Skills 与 MCP](./nanoAgent-03-skills-mcp.md) → 第四篇：SubAgent（本文） → [第五篇：多智能体协作](./nanoAgent-05-teams.md)*

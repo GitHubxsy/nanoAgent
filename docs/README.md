@@ -1,6 +1,6 @@
 # 从零开始理解 Agent —— 系列导读
 
-> 通过一个不到 300 行的开源项目 [nanoAgent](https://github.com/sanbuphy/nanoAgent)，逐层拆解 OpenClaw / Claude Code 等 AI Agent 背后的全部核心概念。
+> 通过一个极简开源项目 [nanoAgent](https://github.com/sanbuphy/nanoAgent)，逐层拆解 OpenClaw / Claude Code 等 AI Agent 背后的全部核心概念。
 
 ---
 
@@ -14,16 +14,16 @@
 
 ## 七篇文章 × 七个代码文件
 
-| # | 主题 | 文章 | 配套代码 | 代码行数 | 核心新增 |
-|---|------|------|----------|----------|----------|
-| 01 | 底层原理 | [第一篇：工具 + 循环](./nanoAgent-01-essence.md) | [`agent.py`](../agent.py) | 103 行 | Agent 最小实现 |
-| 02 | 记忆与规划 | [第二篇：记忆 + 规划](./nanoAgent-02-memory.md) | [`agent-plus.py`](../agent-plus.py) | 206 行 | 持久记忆、任务分解 |
-| 03 | Rules / Skills / MCP | [第三篇：行为规范与工具扩展](./nanoAgent-03-rules-skills-mcp.md) | [`agent-claudecode.py`](../agent-claudecode.py) | 282 行 | 规则约束、技能复用、MCP 协议 |
-| 04 | SubAgent | [第四篇：一次性子智能体](./nanoAgent-04-subagent.md) | [`agent-subagent.py`](../agent-subagent.py) | 192 行 | 并行子任务 |
-| 05 | 多智能体团队 | [第五篇：持久多智能体协作](./nanoAgent-05-teams.md) | [`agent-teams.py`](../agent-teams.py) | 270 行 | 团队身份、持久通信 |
-| 06 | 上下文压缩 | [第六篇：不会撑爆 Context 的 Agent](./nanoAgent-06-compact.md) | [`agent-compact.py`](../agent-compact.py) | 169 行 | 自动摘要压缩 |
-| 07 | 安全防线 | [第七篇：让 Agent 不做坏事](./nanoAgent-07-safety.md) | [`agent-safe.py`](../agent-safe.py) | 219 行 | 黑名单、人工确认、输出截断 |
-| — | 七篇合一 | — | [`agent-full.py`](../agent-full.py) | 507 行 | 完整集成版 |
+| # | 文章 | 配套代码 | 行数 | 核心主题 |
+|---|------|----------|------|----------|
+| 01 | [OpenClaw / Claude Code 的底层原理，只有 115 行](./nanoAgent-01-essence.md) | [`agent.py`](../agent.py) | 103 行 | 工具 + 循环，Agent 最小实现 |
+| 02 | [OpenClaw / Claude Code 如何实现记忆与规划](./nanoAgent-02-memory.md) | [`agent-plus.py`](../agent-plus.py) | 206 行 | 持久记忆、任务分解规划 |
+| 03 | [OpenClaw / Claude Code 的 Rules、Skills 与 MCP 机制](./nanoAgent-03-skills-mcp.md) | [`agent-claudecode.py`](../agent-claudecode.py) | 282 行 | 行为规则、技能复用、MCP 协议 |
+| 04 | [给 Agent 找个帮手——最简 SubAgent 实现](./nanoAgent-04-subagent.md) | [`agent-subagent.py`](../agent-subagent.py) | 192 行 | 一次性子智能体，任务委派 |
+| 05 | [从临时工到正式团队——多智能体协作与编排](./nanoAgent-05-teams.md) | [`agent-teams.py`](../agent-teams.py) | 270 行 | 持久 Agent、身份管理、团队通信 |
+| 06 | [Agent 的"金鱼记忆"问题——上下文压缩](./nanoAgent-06-compact.md) | [`agent-compact.py`](../agent-compact.py) | 169 行 | 自动摘要压缩，防止 Context 爆炸 |
+| 07 | [Agent 执行 rm -rf / 怎么办？三道安全防线](./nanoAgent-07-safe.md) | [`agent-safe.py`](../agent-safe.py) | 219 行 | 命令黑名单、人工确认、输出截断 |
+| — | 七篇合一 | [`agent-full.py`](../agent-full.py) | 507 行 | 完整集成版，包含所有能力 |
 
 ---
 
@@ -43,11 +43,11 @@ agent.py  plus.py  cc.py    sub.py  teams.py compact.py safe.py
 
 - 只想理解 **Agent 原理** → 直接读[第一篇](./nanoAgent-01-essence.md)
 - 想让 Agent **记住历史** → 直接读[第二篇](./nanoAgent-02-memory.md)
-- 想接入 **MCP / 自定义工具** → 直接读[第三篇](./nanoAgent-03-rules-skills-mcp.md)
+- 想接入 **MCP / 自定义工具** → 直接读[第三篇](./nanoAgent-03-skills-mcp.md)
 - 想做 **并行任务分解** → 直接读[第四篇](./nanoAgent-04-subagent.md)
 - 想做 **多 Agent 协作** → 直接读[第五篇](./nanoAgent-05-teams.md)
 - 担心 **Context 爆满** → 直接读[第六篇](./nanoAgent-06-compact.md)
-- 担心 **Agent 搞破坏** → 直接读[第七篇](./nanoAgent-07-safety.md)
+- 担心 **Agent 搞破坏** → 直接读[第七篇](./nanoAgent-07-safe.md)
 - 想要**一个文件搞定所有** → 直接看 [`agent-full.py`](../agent-full.py)
 
 ### 路径 C：只看代码
@@ -67,9 +67,9 @@ agent.py  plus.py  cc.py    sub.py  teams.py compact.py safe.py
 | Rules（行为规则） | 第三篇 | `agent-claudecode.py:143-153` |
 | Skills（可复用技能） | 第三篇 | `agent-claudecode.py:155-165` |
 | MCP 工具加载 | 第三篇 | `agent-claudecode.py:167-181` |
-| SubAgent（子智能体） | 第四篇 | `agent-subagent.py` |
+| SubAgent（子智能体） | 第四篇 | `agent-subagent.py:81-110` |
 | 多智能体通信 | 第五篇 | `agent-teams.py` |
-| Context 压缩 | 第六篇 | `agent-compact.py` |
+| Context 压缩 | 第六篇 | `agent-compact.py:80-123` |
 | 安全黑名单 | 第七篇 | `agent-safe.py` |
 
 ---

@@ -97,6 +97,24 @@ python agent.py "find all .py files and count total lines of code"
 
 ---
 
+## article series
+
+**「Understanding Agent from Scratch」** — 7 articles, 7 code files, step by step.
+
+| # | Article | Code | Lines |
+|---|---------|------|-------|
+| 01 | [The Core: Tools + Loop, Only 115 Lines](./docs/nanoAgent-01-essence.md) | `agent.py` | 103 |
+| 02 | [Memory & Planning](./docs/nanoAgent-02-memory.md) | `agent-plus.py` | 206 |
+| 03 | [Rules, Skills & MCP](./docs/nanoAgent-03-skills-mcp.md) | `agent-claudecode.py` | 282 |
+| 04 | [SubAgent: Delegation](./docs/nanoAgent-04-subagent.md) | `agent-subagent.py` | 192 |
+| 05 | [Multi-Agent Teams](./docs/nanoAgent-05-teams.md) | `agent-teams.py` | 270 |
+| 06 | [Context Compression](./docs/nanoAgent-06-compact.md) | `agent-compact.py` | 169 |
+| 07 | [Safety & Access Control](./docs/nanoAgent-07-safe.md) | `agent-safe.py` | 219 |
+
+→ [Series index & reading guide](./docs/README.md)
+
+---
+
 ## license
 
 MIT
