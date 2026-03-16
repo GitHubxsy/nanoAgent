@@ -1,6 +1,6 @@
 """
 agent-compact.py - 最简上下文压缩 Agent
-基于 agent-essence.py (115行)，核心新增：当对话历史过长时，自动压缩成摘要
+基于 agent-essence.py (100行)，核心新增：当对话历史过长时，自动压缩成摘要
 
 为什么需要压缩？
   Agent 每调用一次工具，messages 就多几条。10 轮循环后可能有 30+ 条消息。

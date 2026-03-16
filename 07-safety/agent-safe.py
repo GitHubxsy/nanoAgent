@@ -1,6 +1,6 @@
 """
 agent-safe.py - 最简安全 Agent
-基于 agent-essence.py (115行)，核心新增三道安全防线:
+基于 agent-essence.py (100行)，核心新增三道安全防线:
 
   1. 命令黑名单 —— 拦截危险命令（rm -rf、mkfs、dd 等）
   2. 用户确认 —— 高风险操作前必须人类确认

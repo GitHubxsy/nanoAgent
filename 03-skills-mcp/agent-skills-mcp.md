@@ -491,7 +491,7 @@ def run_agent_claudecode(task, use_plan=False):
 
 | 文件 | 行数 | 核心主题 | 一句话总结 |
 |------|------|---------|-----------|
-| agent-essence.py | 115 | 工具 + 循环 | Agent 的最小本质 |
+| agent-essence.py | 100 | 工具 + 循环 | Agent 的最小本质 |
 | agent-memory.py | 182 | 记忆 + 规划 | Agent 的时间维度——记住过去、规划未来 |
 | agent-skills-mcp.py | 265 | Rules + Skills + MCP | Agent 的空间维度——扩展知识与工具 |
 
