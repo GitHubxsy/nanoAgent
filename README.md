@@ -1,124 +1,106 @@
-# nanoAgent
+# 从零开始理解 Agent —— 系列导读
 
-[中文](./README_CN.md) | English
+[English](./README_CN.md) | 中文
 
-> *"The question is not what you look at, but what you see."* — Henry David Thoreau
+> 通过一个极简开源项目 [nanoAgent](https://github.com/sanbuphy/nanoAgent)，逐层拆解 OpenClaw / Claude Code 等 AI Agent 背后的全部核心概念。
 
-The simplest way to build an agent that can interact with your system.
+---
 
-A minimal implementation of an AI agent using OpenAI's function calling. The agent can execute bash commands, read files, and write files.
+## 这个系列讲什么
 
-## install
+很多人会用 ChatGPT，但不理解 Agent。这个系列从一个仅 **103 行**的极简实现出发，每篇增加一个核心能力，最终搭建出涵盖记忆、规划、工具扩展、多智能体、安全等所有关键特性的完整 Agent。
+
+**一句话总结：** Agent = LLM + 工具 + 循环。理解了这个，你就理解了 Claude Code、Cursor、Devin 的底层。
+
+---
+
+## 七篇文章 × 七个代码文件
+
+| # | 目录 | 文章 | 配套代码 | 行数 | 核心主题 |
+|---|------|------|----------|------|----------|
+| 01 | [01-essence/](./01-essence/) | [OpenClaw / Claude Code 的底层原理，只有 115 行](./01-essence/README.md) | [`agent.py`](./01-essence/agent.py) | 103 行 | 工具 + 循环，Agent 最小实现 |
+| 02 | [02-memory/](./02-memory/) | [OpenClaw / Claude Code 如何实现记忆与规划](./02-memory/README.md) | [`agent-plus.py`](./02-memory/agent-plus.py) | 206 行 | 持久记忆、任务分解规划 |
+| 03 | [03-skills-mcp/](./03-skills-mcp/) | [OpenClaw / Claude Code 的 Rules、Skills 与 MCP 机制](./03-skills-mcp/README.md) | [`agent-claudecode.py`](./03-skills-mcp/agent-claudecode.py) | 282 行 | 行为规则、技能复用、MCP 协议 |
+| 04 | [04-subagent/](./04-subagent/) | [给 Agent 找个帮手——最简 SubAgent 实现](./04-subagent/README.md) | [`agent-subagent.py`](./04-subagent/agent-subagent.py) | 192 行 | 一次性子智能体，任务委派 |
+| 05 | [05-teams/](./05-teams/) | [从临时工到正式团队——多智能体协作与编排](./05-teams/README.md) | [`agent-teams.py`](./05-teams/agent-teams.py) | 270 行 | 持久 Agent、身份管理、团队通信 |
+| 06 | [06-compact/](./06-compact/) | [Agent 的"金鱼记忆"问题——上下文压缩](./06-compact/README.md) | [`agent-compact.py`](./06-compact/agent-compact.py) | 169 行 | 自动摘要压缩，防止 Context 爆炸 |
+| 07 | [07-safety/](./07-safety/) | [Agent 执行 rm -rf / 怎么办？三道安全防线](./07-safety/README.md) | [`agent-safe.py`](./07-safety/agent-safe.py) | 219 行 | 命令黑名单、人工确认、输出截断 |
+| — | 根目录 | — | [`agent-full.py`](./agent-full.py) | 507 行 | 完整集成版，包含所有能力 |
+
+---
+
+## 推荐阅读路径
+
+### 路径 A：从头到尾（推荐新手）
+
+```
+01-essence → 02-memory → 03-skills-mcp → 04-subagent → 05-teams → 06-compact → 07-safety
+  agent.py    plus.py     cc.py            sub.py        teams.py   compact.py   safe.py
+```
+
+每篇都建立在前一篇基础上，逐层添加新特性。
+
+### 路径 B：按需跳入（推荐有基础的读者）
+
+- 只想理解 **Agent 原理** → [01-essence/](./01-essence/)
+- 想让 Agent **记住历史** → [02-memory/](./02-memory/)
+- 想接入 **MCP / 自定义工具** → [03-skills-mcp/](./03-skills-mcp/)
+- 想做 **并行任务分解** → [04-subagent/](./04-subagent/)
+- 想做 **多 Agent 协作** → [05-teams/](./05-teams/)
+- 担心 **Context 爆满** → [06-compact/](./06-compact/)
+- 担心 **Agent 搞破坏** → [07-safety/](./07-safety/)
+- 想要**一个文件搞定所有** → [`agent-full.py`](./agent-full.py)
+
+### 路径 C：只看代码
+
+每个目录下都有对应的 `.py` 文件，文件顶部 docstring 是该篇章的摘要。
+
+---
+
+## 各篇章核心概念速查
+
+| 概念 | 出现篇章 | 关键代码位置 |
+|------|----------|--------------|
+| Tool Schema / Function Calling | 第一篇 | `01-essence/agent.py:16-60` |
+| Agent Loop（核心循环） | 第一篇 | `01-essence/agent.py:62-100` |
+| 持久记忆（Persistent Memory） | 第二篇 | `02-memory/agent-plus.py:99-117` |
+| 任务规划（Planning） | 第二篇 | `02-memory/agent-plus.py:119-142` |
+| Rules（行为规则） | 第三篇 | `03-skills-mcp/agent-claudecode.py:143-153` |
+| Skills（可复用技能） | 第三篇 | `03-skills-mcp/agent-claudecode.py:155-165` |
+| MCP 工具加载 | 第三篇 | `03-skills-mcp/agent-claudecode.py:167-181` |
+| SubAgent（子智能体） | 第四篇 | `04-subagent/agent-subagent.py:81-110` |
+| 多智能体通信 | 第五篇 | `05-teams/agent-teams.py` |
+| Context 压缩 | 第六篇 | `06-compact/agent-compact.py:80-123` |
+| 安全黑名单 | 第七篇 | `07-safety/agent-safe.py` |
+
+---
+
+## 安装与快速上手
 
 ```bash
+git clone https://github.com/sanbuphy/nanoAgent.git
+cd nanoAgent
 pip install -r requirements.txt
-```
 
-Set your environment variables:
+export OPENAI_API_KEY="your-key"
+export OPENAI_BASE_URL="https://api.openai.com/v1"  # 或 DeepSeek/Qwen 等
 
-**macOS/Linux:**
-```bash
-export OPENAI_API_KEY='your-key-here'
-export OPENAI_BASE_URL='https://api.openai.com/v1'  # optional
-export OPENAI_MODEL='gpt-4o-mini'  # optional
-```
+# 从第一篇开始
+python 01-essence/agent.py "列出当前目录下所有 Python 文件"
 
-**Windows (PowerShell):**
-```powershell
-$env:OPENAI_API_KEY='your-key-here'
-$env:OPENAI_BASE_URL='https://api.openai.com/v1'  # optional
-$env:OPENAI_MODEL='gpt-4o-mini'  # optional
-```
+# 带记忆的版本
+python 02-memory/agent-plus.py "统计代码行数并记住结果"
 
-**Windows (CMD):**
-```cmd
-set OPENAI_API_KEY=your-key-here
-set OPENAI_BASE_URL=https://api.openai.com/v1
-set OPENAI_MODEL=gpt-4o-mini
-```
-
-## quick start
-
-```bash
-python agent.py "list all python files in current directory"
-python agent.py "create a file called hello.txt with 'Hello World'"
-python agent.py "read the contents of README.md"
-```
-
-## how it works
-
-The agent uses OpenAI's function calling to:
-1. Receive a task from the user
-2. Decide which tools to use (bash, read_file, write_file)
-3. Execute the tools
-4. Return results to the model
-5. Repeat until task is complete
-
-That's it. ~100 lines of code.
-
-```python
-# Define tools
-tools = [{"type": "function", "function": {...}}]
-
-# Agent loop
-for _ in range(max_iterations):
-    response = client.chat.completions.create(model=model, messages=messages, tools=tools)
-    if not response.choices[0].message.tool_calls:
-        return response.choices[0].message.content
-
-    # Execute tool calls
-    for tool_call in response.choices[0].message.tool_calls:
-        result = available_functions[tool_call.function.name](**args)
-        messages.append({"role": "tool", "content": result})
-```
-
-The core is just a loop: call model → execute tools → repeat.
-
-Recent hardening keeps the loop running even when a tool call contains malformed JSON arguments or references an unknown tool; those cases are returned to the model as explicit tool errors instead of crashing the agent.
-
-## capabilities
-
-- `execute_bash`: Run any bash command
-- `read_file`: Read file contents
-- `write_file`: Write content to files
-
-## examples
-
-```bash
-# System operations
-python agent.py "what's my current directory and what files are in it?"
-
-# File operations
-python agent.py "create a python script that prints hello world"
-
-# Combined tasks
-python agent.py "find all .py files and count total lines of code"
+# 完整版（集成所有特性）
+python agent-full.py "重构 hello.py，添加类型注解和单元测试"
 ```
 
 ---
 
-## article series
-
-**「Understanding Agent from Scratch」** — 7 articles, 7 code files, step by step.
-
-| # | Article | Code | Lines |
-|---|---------|------|-------|
-| 01 | [The Core: Tools + Loop, Only 115 Lines](./docs/nanoAgent-01-essence.md) | `agent.py` | 103 |
-| 02 | [Memory & Planning](./docs/nanoAgent-02-memory.md) | `agent-plus.py` | 206 |
-| 03 | [Rules, Skills & MCP](./docs/nanoAgent-03-skills-mcp.md) | `agent-claudecode.py` | 282 |
-| 04 | [SubAgent: Delegation](./docs/nanoAgent-04-subagent.md) | `agent-subagent.py` | 192 |
-| 05 | [Multi-Agent Teams](./docs/nanoAgent-05-teams.md) | `agent-teams.py` | 270 |
-| 06 | [Context Compression](./docs/nanoAgent-06-compact.md) | `agent-compact.py` | 169 |
-| 07 | [Safety & Access Control](./docs/nanoAgent-07-safe.md) | `agent-safe.py` | 219 |
-
-→ [Series index & reading guide](./docs/README.md)
-
----
-
-## license
+## 许可证
 
 MIT
 
 ────────────────────────────────────────
 
-⏺ *Like a single seed that grows into a forest, one file becomes infinite possibilities.*
+⏺ *如同一粒种子长成森林，一个文件化作无限可能。*

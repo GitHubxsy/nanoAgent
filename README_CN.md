@@ -40,9 +40,9 @@ set OPENAI_MODEL=gpt-4o-mini
 ## 快速开始
 
 ```bash
-python agent.py "列出当前目录下所有 python 文件"
-python agent.py "创建一个名为 hello.txt 的文件，内容是 'Hello World'"
-python agent.py "读取 README.md 的内容"
+python 01-essence/agent.py "列出当前目录下所有 python 文件"
+python 01-essence/agent.py "创建一个名为 hello.txt 的文件，内容是 'Hello World'"
+python 01-essence/agent.py "读取 README.md 的内容"
 ```
 
 ## 工作原理
@@ -84,13 +84,13 @@ for _ in range(max_iterations):
 
 ```bash
 # 系统操作
-python agent.py "当前目录是什么，里面有哪些文件？"
+python 01-essence/agent.py "当前目录是什么，里面有哪些文件？"
 
 # 文件操作
-python agent.py "创建一个打印 hello world 的 python 脚本"
+python 01-essence/agent.py "创建一个打印 hello world 的 python 脚本"
 
 # 组合任务
-python agent.py "找到所有 .py 文件并统计总代码行数"
+python 01-essence/agent.py "找到所有 .py 文件并统计总代码行数"
 ```
 
 ---
@@ -99,17 +99,17 @@ python agent.py "找到所有 .py 文件并统计总代码行数"
 
 **「从零开始理解 Agent」** —— 7 篇文章，7 个代码文件，逐层拆解。
 
-| # | 文章 | 代码 | 行数 |
-|---|------|------|------|
-| 01 | [底层原理，只有 115 行](./docs/nanoAgent-01-essence.md) | `agent.py` | 103 |
-| 02 | [记忆与规划](./docs/nanoAgent-02-memory.md) | `agent-plus.py` | 206 |
-| 03 | [Rules、Skills 与 MCP](./docs/nanoAgent-03-skills-mcp.md) | `agent-claudecode.py` | 282 |
-| 04 | [SubAgent 子智能体](./docs/nanoAgent-04-subagent.md) | `agent-subagent.py` | 192 |
-| 05 | [多智能体团队协作](./docs/nanoAgent-05-teams.md) | `agent-teams.py` | 270 |
-| 06 | [上下文压缩](./docs/nanoAgent-06-compact.md) | `agent-compact.py` | 169 |
-| 07 | [三道安全防线](./docs/nanoAgent-07-safe.md) | `agent-safe.py` | 219 |
+| # | 目录 | 文章 | 代码 | 行数 |
+|---|------|------|------|------|
+| 01 | [01-essence/](./01-essence/) | [底层原理，只有 115 行](./01-essence/README.md) | `agent.py` | 103 |
+| 02 | [02-memory/](./02-memory/) | [记忆与规划](./02-memory/README.md) | `agent-plus.py` | 206 |
+| 03 | [03-skills-mcp/](./03-skills-mcp/) | [Rules、Skills 与 MCP](./03-skills-mcp/README.md) | `agent-claudecode.py` | 282 |
+| 04 | [04-subagent/](./04-subagent/) | [SubAgent 子智能体](./04-subagent/README.md) | `agent-subagent.py` | 192 |
+| 05 | [05-teams/](./05-teams/) | [多智能体团队协作](./05-teams/README.md) | `agent-teams.py` | 270 |
+| 06 | [06-compact/](./06-compact/) | [上下文压缩](./06-compact/README.md) | `agent-compact.py` | 169 |
+| 07 | [07-safety/](./07-safety/) | [三道安全防线](./07-safety/README.md) | `agent-safe.py` | 219 |
 
-→ [系列导读与目录](./docs/README.md)
+→ [系列导读与目录](./README.md)
 
 ---
 
