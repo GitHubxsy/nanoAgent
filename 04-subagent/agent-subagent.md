@@ -1,6 +1,6 @@
 # 从零开始理解 Agent（四）：给 Agent 找个帮手——最简 SubAgent 实现
 
-> **「从零开始理解 Agent」系列** —— 通过一个不到 300 行的开源项目 [nanoAgent](https://github.com/sanbuphy/nanoAgent)，逐层拆解 OpenClaw / Claude Code 等 AI Agent 背后的全部核心概念。
+> **「从零开始理解 Agent」系列** —— 通过一个不到 300 行的开源项目 [nanoAgent](https://github.com/GitHubxsy/nanoAgent)，逐层拆解 OpenClaw / Claude Code 等 AI Agent 背后的全部核心概念。
 >
 > - [第一篇：底层原理，只有 100 行](../01-essence/agent-essence.md) —— 工具 + 循环
 > - [第二篇：记忆与规划](../02-memory/agent-memory.md) —— 182 行
@@ -333,7 +333,7 @@ SubAgent 和 Plan 最大的区别：
 | 三 | agent-skills-mcp.py (265行) | Rules + Skills + MCP | 空间维度——扩展知识与工具 |
 | 四 | agent-subagent.py (192行) ⭐新 | SubAgent | 协作维度——给 Agent 找帮手 |
 
-> 注：前三个文件来自 [nanoAgent 原始仓库](https://github.com/sanbuphy/nanoAgent)。第四个文件是本文新开发的（[GitHub 源码](https://github.com/GitHubxsy/nanoAgent/blob/main/04-subagent/agent-subagent.py)），为了聚焦 SubAgent 核心逻辑，刻意去掉了 Plan 功能，因此行数反而比第三篇少。这不是倒退，而是做减法——**用最干净的代码展示最核心的概念**。
+> 注：前三个文件来自 [nanoAgent 原始仓库](https://github.com/GitHubxsy/nanoAgent)。第四个文件是本文新开发的（[GitHub 源码](https://github.com/GitHubxsy/nanoAgent/blob/main/04-subagent/agent-subagent.py)），为了聚焦 SubAgent 核心逻辑，刻意去掉了 Plan 功能，因此行数反而比第三篇少。这不是倒退，而是做减法——**用最干净的代码展示最核心的概念**。
 
 四个维度叠加，就构成了 OpenClaw、Claude Code、Cursor Agent、Devin 等产品的完整架构。
 
@@ -345,4 +345,4 @@ SubAgent 和 Plan 最大的区别：
 
 ---
 
-*本文基于 [sanbuphy/nanoAgent](https://github.com/sanbuphy/nanoAgent) 的架构扩展。完整系列：[第一篇：底层原理](../01-essence/agent-essence.md) → [第二篇：记忆与规划](../02-memory/agent-memory.md) → [第三篇：Rules、Skills 与 MCP](../03-skills-mcp/agent-skills-mcp.md) → 第四篇：SubAgent（本文） → [第五篇：多智能体协作](../05-teams/agent-teams.md)*
+*本文基于 [GitHubxsy/nanoAgent](https://github.com/GitHubxsy/nanoAgent) 的架构扩展。完整系列：[第一篇：底层原理](../01-essence/agent-essence.md) → [第二篇：记忆与规划](../02-memory/agent-memory.md) → [第三篇：Rules、Skills 与 MCP](../03-skills-mcp/agent-skills-mcp.md) → 第四篇：SubAgent（本文） → [第五篇：多智能体协作](../05-teams/agent-teams.md)*
