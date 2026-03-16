@@ -101,9 +101,9 @@ python 01-essence/agent.py "找到所有 .py 文件并统计总代码行数"
 
 | # | 目录 | 文章 | 代码 | 行数 |
 |---|------|------|------|------|
-| 01 | [01-essence/](./01-essence/) | [底层原理，只有 115 行](./01-essence/README.md) | `agent.py` | 103 |
-| 02 | [02-memory/](./02-memory/) | [记忆与规划](./02-memory/README.md) | `agent-plus.py` | 206 |
-| 03 | [03-skills-mcp/](./03-skills-mcp/) | [Rules、Skills 与 MCP](./03-skills-mcp/README.md) | `agent-claudecode.py` | 282 |
+| 01 | [01-essence/](./01-essence/) | [底层原理，只有 115 行](./01-essence/README.md) | `agent-essence.py` | 103 |
+| 02 | [02-memory/](./02-memory/) | [记忆与规划](./02-memory/README.md) | `agent-memory.py` | 206 |
+| 03 | [03-skills-mcp/](./03-skills-mcp/) | [Rules、Skills 与 MCP](./03-skills-mcp/README.md) | `agent-skills-mcp.py` | 282 |
 | 04 | [04-subagent/](./04-subagent/) | [SubAgent 子智能体](./04-subagent/README.md) | `agent-subagent.py` | 192 |
 | 05 | [05-teams/](./05-teams/) | [多智能体团队协作](./05-teams/README.md) | `agent-teams.py` | 270 |
 | 06 | [06-compact/](./06-compact/) | [上下文压缩](./06-compact/README.md) | `agent-compact.py` | 169 |
