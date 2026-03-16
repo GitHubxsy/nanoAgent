@@ -2,7 +2,7 @@
 
 > **「从零开始理解 Agent」系列** —— 通过一个不到 300 行的开源项目 [nanoAgent](https://github.com/sanbuphy/nanoAgent)，逐层拆解 OpenClaw / Claude Code 等 AI Agent 背后的全部核心概念。
 >
-> - [第一篇：底层原理，只有 115 行](../01-essence/agent-essence.md) —— 工具 + 循环
+> - [第一篇：底层原理，只有 100 行](../01-essence/agent-essence.md) —— 工具 + 循环
 > - [第二篇：记忆与规划](../02-memory/agent-memory.md) —— 182 行
 > - **第三篇：Rules、Skills 与 MCP**（本文）—— 265 行
 > - [第四篇：SubAgent 子智能体](../04-subagent/agent-subagent.md) —— 192 行
@@ -10,7 +10,7 @@
 > - [第六篇：上下文压缩](../06-compact/agent-compact.md) —— 169 行
 > - [第七篇：安全与权限控制](../07-safety/agent-safe.md) —— 219 行
 
-在前两篇中，我们一步步构建了 Agent 的核心能力：[第一篇](../01-essence/agent-essence.md)用 115 行代码搭好了"工具 + 循环"的地基；[第二篇](../02-memory/agent-memory.md)用 67 行增量代码装上了记忆和规划。
+在前两篇中，我们一步步构建了 Agent 的核心能力：[第一篇](../01-essence/agent-essence.md)用 100 行代码搭好了"工具 + 循环"的地基；[第二篇](../02-memory/agent-memory.md)用 67 行增量代码装上了记忆和规划。
 
 但在第二篇结尾，我们留下了三个未解之谜：工具是硬编码的，没有行为约束，规划是被动触发的。
 
@@ -28,7 +28,7 @@
 
 先回顾整个进化路线：
 
-| 能力 | agent-essence.py (115行) | agent-memory.py (182行) | agent-skills-mcp.py (265行) |
+| 能力 | agent-essence.py (100行) | agent-memory.py (182行) | agent-skills-mcp.py (265行) |
 |------|---|---|---|
 | 基础工具 | bash / read / write | bash / read / write | read / write / **edit** / **glob** / **grep** / bash |
 | 记忆 | ❌ | ✅ 文件持久化 | ✅ 文件持久化 |
@@ -446,7 +446,7 @@ def run_agent_claudecode(task, use_plan=False):
 
 ---
 
-## 八、从 115 行到 265 行的认知地图
+## 八、从 100 行到 265 行的认知地图
 
 三篇文章读下来，我们在 265 行代码里看到了 Agent 的全部核心概念。用一张七层架构图来做最后的回顾：
 

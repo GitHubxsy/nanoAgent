@@ -2,7 +2,7 @@
 
 > **「从零开始理解 Agent」系列** —— 通过一个不到 300 行的开源项目 [nanoAgent](https://github.com/sanbuphy/nanoAgent)，逐层拆解 OpenClaw / Claude Code 等 AI Agent 背后的全部核心概念。
 >
-> - [第一篇：底层原理，只有 115 行](../01-essence/agent-essence.md) —— 工具 + 循环
+> - [第一篇：底层原理，只有 100 行](../01-essence/agent-essence.md) —— 工具 + 循环
 > - [第二篇：记忆与规划](../02-memory/agent-memory.md) —— 182 行
 > - [第三篇：Rules、Skills 与 MCP](../03-skills-mcp/agent-skills-mcp.md) —— 265 行
 > - **第四篇：最简 SubAgent 实现**（本文）—— 新开发，192 行
@@ -301,7 +301,7 @@ SubAgent 和 Plan 最大的区别：
 
 ---
 
-## 七、系列总结：从 115 行到完整 Agent 架构
+## 七、系列总结：从 100 行到完整 Agent 架构
 
 四篇文章，我们从零搭建了一个完整的 Agent 认知体系：
 
@@ -328,7 +328,7 @@ SubAgent 和 Plan 最大的区别：
 
 | 篇 | 文件 | 核心主题 | 一句话总结 |
 |----|------|---------|-----------|
-| 一 | agent-essence.py (115行) | 工具 + 循环 | Agent 的最小本质——LLM 是大脑，代码是手脚 |
+| 一 | agent-essence.py (100行) | 工具 + 循环 | Agent 的最小本质——LLM 是大脑，代码是手脚 |
 | 二 | agent-memory.py (182行) | 记忆 + 规划 | 时间维度——记住过去、规划未来 |
 | 三 | agent-skills-mcp.py (265行) | Rules + Skills + MCP | 空间维度——扩展知识与工具 |
 | 四 | agent-subagent.py (192行) ⭐新 | SubAgent | 协作维度——给 Agent 找帮手 |

@@ -101,7 +101,7 @@ python 01-essence/agent-essence.py "找到所有 .py 文件并统计总代码行
 
 | # | 目录 | 文章 | 代码 | 行数 |
 |---|------|------|------|------|
-| 01 | [01-essence/](./01-essence/) | [底层原理，只有 115 行](./01-essence/agent-essence.md) | `agent-essence.py` | 103 |
+| 01 | [01-essence/](./01-essence/) | [底层原理，只有 100 行](./01-essence/agent-essence.md) | `agent-essence.py` | 103 |
 | 02 | [02-memory/](./02-memory/) | [记忆与规划](./02-memory/agent-memory.md) | `agent-memory.py` | 206 |
 | 03 | [03-skills-mcp/](./03-skills-mcp/) | [Rules、Skills 与 MCP](./03-skills-mcp/agent-skills-mcp.md) | `agent-skills-mcp.py` | 282 |
 | 04 | [04-subagent/](./04-subagent/) | [SubAgent 子智能体](./04-subagent/agent-subagent.md) | `agent-subagent.py` | 192 |

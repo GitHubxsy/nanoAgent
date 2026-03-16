@@ -2,7 +2,7 @@
 
 > **「从零开始理解 Agent」系列** —— 从一个极简开源项目 [nanoAgent](https://github.com/sanbuphy/nanoAgent) 出发，逐层拆解 OpenClaw / Claude Code 等 AI Agent 背后的全部核心概念。
 >
-> - [第一篇：底层原理，只有 115 行](../01-essence/agent-essence.md) —— 工具 + 循环
+> - [第一篇：底层原理，只有 100 行](../01-essence/agent-essence.md) —— 工具 + 循环
 > - [第二篇：记忆与规划](../02-memory/agent-memory.md) —— 182 行
 > - [第三篇：Rules、Skills 与 MCP](../03-skills-mcp/agent-skills-mcp.md) —— 265 行
 > - [第四篇：SubAgent 子智能体](../04-subagent/agent-subagent.md) —— 192 行
