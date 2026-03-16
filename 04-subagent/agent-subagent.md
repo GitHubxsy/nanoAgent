@@ -18,12 +18,6 @@
 
 这就是 SubAgent（子智能体）的核心思想：主 Agent 当项目经理，把子任务委派给拥有不同专业身份的 SubAgent，各管一块，互不干扰。
 
-> **关于本篇代码的说明：**
->
-> 前三篇分析的 `agent-essence.py`、`agent-memory.py`、`agent-skills-mcp.py` 都来自 nanoAgent 原始仓库。本篇的 `agent-subagent.py` 是我们在 `agent-skills-mcp.py` 基础上**新开发的文件**（[GitHub 源码](https://github.com/GitHubxsy/nanoAgent/blob/main/04-subagent/agent-subagent.py)），专门用来演示 SubAgent 机制。
->
-> 你可能注意到它只有 192 行，反而比第三篇的 265 行更少了。这是刻意为之——为了让 SubAgent 的核心逻辑尽可能通俗易懂，我们**去掉了 Plan（规划）功能**，只保留基础工具 + 记忆 + SubAgent。少即是多：去掉 Plan 相关的全局变量、递归调用和特殊分支后，核心循环 `run_agent` 从 35 行简化到了 12 行，整个代码一目了然。
-
 ---
 
 ## 一、一个生活类比秒懂 SubAgent

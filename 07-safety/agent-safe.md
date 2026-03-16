@@ -18,10 +18,6 @@
 
 今天我们回到 agent-essence.py 的基础上，加上三道安全防线，让 Agent 从"裸奔"变成"有保险的"。
 
-> **关于本篇代码的说明：**
->
-> 和第四、五、六篇一样，本篇的 `agent-safe.py` 是**新开发的文件**（[GitHub 源码](https://github.com/GitHubxsy/nanoAgent/blob/main/07-safety/agent-safe.py)），基于第一篇的 `agent-essence.py`，只新增了三道安全防线。
-
 ---
 
 ## 一、Agent 的安全问题到底有多严重？

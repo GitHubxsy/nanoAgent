@@ -16,10 +16,6 @@
 
 今天我们回到 agent-essence.py 的极简基础上，只加一个函数（约 30 行），实现最简单的上下文压缩。
 
-> **关于本篇代码的说明：**
->
-> 和第四、五篇一样，本篇的 `agent-compact.py` 是我们**新开发的文件**（[GitHub 源码](https://github.com/GitHubxsy/nanoAgent/blob/main/06-compact/agent-compact.py)），不在 nanoAgent 原始仓库中。它基于第一篇的 `agent-essence.py`，只新增了一个 `compact_messages()` 函数来演示压缩机制。为了让压缩逻辑尽可能清晰，没有加入记忆、规划、Rules 等其他功能。
-
 ---
 
 ## 一、先搞清楚问题：为什么 messages 会爆？
