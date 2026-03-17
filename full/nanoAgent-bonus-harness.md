@@ -6,7 +6,7 @@
 
 回顾一下这几年的关键词演变：
 
-- **2023：Prompt Engineering** —— 研究怎么跟模型说话，让它回答得更好
+- **2023-2024：Prompt Engineering** —— 研究怎么跟模型说话，让它回答得更好
 - **2025：Context Engineering** —— 研究怎么组织上下文，让模型看到正确的信息
 - **2026：Harness Engineering** —— 研究怎么搭建模型周围的整套系统，让模型真正能干活
 
@@ -169,6 +169,41 @@ def execute_with_hooks(tool_name, args, func):
 ```
 
 原帖把这类机制称为"执行钩子"——压缩、续写、lint 检查、安全拦截，都是 Harness 在模型执行动作前后插入的控制逻辑。
+
+### 补充：Ralph Loop —— 不让 Agent 半途而废的 Hook
+
+原帖中还专门提到了一个有意思的机制：**Ralph Loop**。
+
+回忆我们第一篇中的核心循环：
+
+```python
+for _ in range(max_iterations):
+    ...
+return "Max iterations reached"  # Agent 到达上限，退出
+```
+
+当 `max_iterations` 用完时，Agent 就停了——不管任务有没有完成。这在简单任务中没问题，但对于"自主写一个完整项目"这样的长时程任务，5 轮、10 轮根本不够。
+
+Ralph Loop 的思路是：**在 Agent 即将退出时，Harness 拦截这个退出，检查任务是否真的完成了。如果没完成，重新注入一段提示让 Agent 继续干。**
+
+用我们第七篇的 Hook 视角来理解，它就是一个 `before_exit_hook`：
+
+```python
+def ralph_loop_hook(messages, result):
+    """Agent 想退出时，检查任务是否完成"""
+    if result == "Max iterations reached":
+        # 问 LLM：任务完成了吗？
+        check = llm.call("Based on the conversation, is the task fully completed? Reply YES or NO.")
+        if "NO" in check:
+            # 没完成，注入续写提示，让 Agent 继续
+            messages.append({"role": "user", "content": "任务还没完成，请继续。"})
+            return False  # 不退出，继续循环
+    return True  # 确实完成了，允许退出
+```
+
+本质就是把 `max_iterations` 从"硬上限"变成了"软检查点"——到了上限不是直接退出，而是先评估一下，没做完就续命。
+
+这个机制配合文件系统（Agent 把中间结果写入文件，下次续写时读回来）和上下文压缩（防止续写时历史太长），就能让 Agent 持续工作数十轮甚至上百轮，完成真正复杂的任务。
 
 ---
 
