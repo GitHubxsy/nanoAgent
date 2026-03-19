@@ -254,31 +254,246 @@ def subagent(role, task):
 
 ## 七、第五篇：多智能体团队协作
 
+### 为什么需要 Teams？SubAgent 的局限
+
+第四篇的 SubAgent 已经能分工，但有三个根本缺陷：
+
+```
+问题 1: SubAgent 没有记忆
+  主 Agent 调用 subagent("dev", "写后端") → 完成
+  主 Agent 再调用 subagent("dev", "优化后端") → 已经忘记之前写了什么
+
+问题 2: SubAgent 没有身份
+  每次调用都是一个全新的角色，没有积累，没有上下文
+
+问题 3: SubAgent 之间无法通信
+  前端写完了，后端不知道 API 接口是什么
+  只能通过主 Agent 中转，信息损耗严重
+```
+
+**Teams 的解答：给每个 Agent 三样东西 —— 持久记忆、固定身份、通信通道。**
+
+---
+
 ### 从临时工到正式员工
 
 | | SubAgent（临时工） | Teams Agent（正式员工） |
 |--|--|--|
 | 有名字吗？ | ❌ | ✅ 有固定名字和角色 |
-| 记得上次做了什么？ | ❌ 每次失忆 | ✅ 记忆跨轮次累积 |
-| 能收到同事消息吗？ | ❌ | ✅ 有收件箱 |
-| 什么时候消失？ | 函数返回即消亡 | 团队解散才消失 |
+| 记得上次做了什么？ | ❌ 每次失忆 | ✅ messages 跨轮次累积 |
+| 能收到同事消息吗？ | ❌ | ✅ inbox 收件箱 |
+| 什么时候消失？ | 函数返回即消亡 | team.disband() 才消失 |
+| 适合什么场景？ | 独立子任务，一次性 | 有依赖、需协作的长任务 |
 
-### 核心：两个类
+---
+
+### 三大核心能力
+
+```
+能力 1: 持久记忆（Persistent Memory）
+  → Agent.messages 是一个列表，每次 chat() 都往里追加
+  → 第二次调用时，Agent 还记得第一次做了什么
+
+能力 2: 身份与生命周期（Identity & Lifecycle）
+  → hire()：Agent 被创建，身份确立
+  → chat()：Agent 可被多次调用，记忆持续累积
+  → disband()：团队解散，所有 Agent 生命周期结束
+
+能力 3: 通信通道（Communication Channel）
+  → send(from, to, msg)：点对点消息
+  → broadcast(from, msg)：广播给所有人
+  → Agent.inbox：收件箱，下次 chat() 时自动注入
+```
+
+---
+
+### 核心实现：Agent 类
 
 ```python
 class Agent:
     def __init__(self, name, role):
         self.name = name
-        self.messages = [...]  # 持久记忆
-        self.inbox = []        # 通信通道
+        self.role = role
+        self.inbox = []          # 通信通道：收件箱
+        self.messages = [        # 持久记忆：所有对话历史
+            {"role": "system", "content": f"You are {name}, a {role}."}
+        ]
 
+    def receive(self, sender, message):
+        """其他 Agent 发来消息 → 放进收件箱"""
+        self.inbox.append({"from": sender, "content": message})
+
+    def chat(self, task):
+        # 1. 先消化 inbox 里积压的消息
+        if self.inbox:
+            mail = "\n".join(f"[来自 {m['from']}]: {m['content']}" for m in self.inbox)
+            self.messages.append({"role": "user", "content": f"你收到了团队成员的消息:\n{mail}"})
+            resp = client.chat.completions.create(model=MODEL, messages=self.messages)
+            self.messages.append(resp.choices[0].message)
+            self.inbox.clear()
+
+        # 2. 执行本次任务（messages 是持续累积的，Agent 记得之前所有对话）
+        self.messages.append({"role": "user", "content": task})
+        for _ in range(10):
+            response = client.chat.completions.create(
+                model=MODEL, messages=self.messages, tools=tools
+            )
+            message = response.choices[0].message
+            self.messages.append(message)                    # ← 记忆累积
+
+            if not message.tool_calls:
+                return message.content
+
+            for tc in message.tool_calls:
+                result = available_functions[tc.function.name](**args)
+                self.messages.append({"role": "tool", "content": result})  # ← 工具结果也进记忆
+```
+
+**关键：`self.messages` 永远不清空**（SubAgent 的 messages 是局部变量，函数返回即销毁）
+
+---
+
+### 核心实现：Team 类
+
+```python
 class Team:
     def __init__(self):
-        self.agents = {}       # 身份管理
-    def add_agent(self, agent): ...
-    def send_message(self, from_, to, content): ...  # 点对点通信
-    def broadcast(self, from_, content): ...          # 广播
+        self.agents = {}       # name → Agent 对象
+
+    def hire(self, name, role):
+        """招募：创建 Agent，存入字典"""
+        agent = Agent(name, role)
+        self.agents[name] = agent
+        return agent
+
+    def send(self, from_name, to_name, message):
+        """点对点：只投递给指定成员的 inbox"""
+        self.agents[to_name].receive(from_name, message)
+
+    def broadcast(self, from_name, message):
+        """广播：投递给除自己以外的所有成员"""
+        for name, agent in self.agents.items():
+            if name != from_name:
+                agent.receive(from_name, message)
+
+    def disband(self):
+        """解散：清空 agents 字典，所有 Agent 对象释放"""
+        self.agents.clear()
 ```
+
+---
+
+### 四阶段协作流程
+
+```
+第 1 阶段：PM 规划团队（LLM 根据任务自动决定需要哪些角色）
+  ┌─────────────────────────────────────┐
+  │ 任务：创建 TODO 应用                  │
+  │ 规划结果：                           │
+  │   alice — backend developer         │
+  │   bob   — frontend developer        │
+  │   carol — reviewer                  │
+  └─────────────────────────────────────┘
+
+第 2 阶段：招募（hire）
+  team.hire("alice", "backend developer")
+  team.hire("bob",   "frontend developer")
+  team.hire("carol", "reviewer")
+
+第 3 阶段：协作开发（逐个 chat，完成后广播成果）
+  alice.chat("写 Flask TODO API")
+    → 创建 app.py
+    → broadcast: "我完成了后端 API，接口在 /todos"
+
+  bob.chat("写 HTML 前端")    ← bob 的 inbox 已有 alice 的广播
+    → 先消化 inbox（知道了 API 地址）
+    → 创建 index.html（直接对接正确的 API）
+    → broadcast: "前端完成"
+
+  carol.chat("最终审查")      ← carol 的 inbox 有所有人的广播
+    → 先消化 inbox（了解全局进展）
+    → 做 code review，输出审查报告
+
+第 4 阶段：解散
+  team.disband()
+```
+
+---
+
+### 通信机制详解
+
+```
+点对点（send）              广播（broadcast）
+─────────────────          ──────────────────────────────
+alice → bob               alice → [bob, carol, dave, ...]
+  仅 bob 的 inbox          所有人的 inbox（除 alice 自己）
+  适合：传递特定信息         适合：同步全局进展
+```
+
+**消息在什么时候被处理？**
+
+```
+agent.receive()  →  消息进入 inbox（只是存储，不立即处理）
+agent.chat()     →  先看 inbox，消化后再执行新任务
+                    → 这样 Agent 能在执行任务前，先了解团队最新动态
+```
+
+---
+
+### 持久记忆的真实价值
+
+```python
+# SubAgent：每次调用完全独立，无记忆
+subagent("dev", "写后端")   # messages 是局部变量，返回后消失
+subagent("dev", "写单测")   # 完全不知道之前写了什么后端
+
+# Teams Agent：记忆累积
+alice.chat("写后端")         # alice.messages 增长到 20 条
+alice.chat("给后端写单测")   # alice.messages 已有 20 条上下文
+                             # → 知道文件结构、变量名、边界条件
+```
+
+> **一句话：持久记忆让 Agent 不只是"执行者"，而是真正"理解项目"的团队成员。**
+
+---
+
+### 生命周期时序图
+
+```
+时间轴 →
+
+alice:  [hire]──[chat:写后端]──────[broadcast]──[chat:修bug]──[disband]
+                                       │
+bob:    [hire]──────────────[inbox]──[chat:写前端]──[broadcast]──[disband]
+                                                        │
+carol:  [hire]──────────────────────────────[inbox]──[chat:审查]──[disband]
+
+                            ↑ 信息在这里流动，每个 Agent 的记忆独立累积
+```
+
+---
+
+### 关键设计决策
+
+| 设计 | 原因 |
+|------|------|
+| `messages` 永不清空 | 持久记忆的根本；清空 = SubAgent |
+| `inbox` 在 `chat()` 开头消化 | 保证 Agent 在执行任务前已获得最新信息 |
+| LLM 自动规划团队成员 | 不同任务需要不同角色，让模型决定比写死更灵活 |
+| 最后一个成员固定为 reviewer | 审查需要全局视野，inbox 收到了所有广播 |
+| `disband()` 不销毁历史 | Python GC 自动处理；如需保存，序列化 `messages` 即可 |
+
+---
+
+### Teams vs SubAgent vs Plan 三者对比
+
+| 维度 | Plan（第二篇） | SubAgent（第四篇） | Teams（第五篇） |
+|------|-----------|---------------|------------|
+| 上下文共享 | 所有步骤共享同一个 messages | 每个 SubAgent 独立 messages | 每个 Agent 独立，但通过 inbox 通信 |
+| 身份 | 单一角色贯穿全程 | 临时角色，用完即弃 | 固定身份，多次交互 |
+| 适合场景 | 步骤有严格依赖顺序 | 子任务相对独立 | 需要协作且有知识积累的复杂任务 |
+| 通信方式 | 无（步骤间靠共享 messages） | 无（靠主 Agent 中转） | send + broadcast |
+| 代码复杂度 | 低 | 中 | 高（但值得） |
 
 ---
 
