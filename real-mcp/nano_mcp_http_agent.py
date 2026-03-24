@@ -1,8 +1,8 @@
 """
-nano_mcp_http_client.py - 最小 MCP Client（Streamable HTTP 版，40 行）
+nano_mcp_http_agent.py - 最小 MCP Agent（Streamable HTTP 版，40 行）
 通过 HTTP 请求和远程 MCP Server 通信
 
-用法: python nano_mcp_http_client.py "What is 3 + 5?"
+用法: python nano_mcp_http_agent.py "What is 3 + 5?"
 """
 import os, sys, json, requests
 from openai import OpenAI

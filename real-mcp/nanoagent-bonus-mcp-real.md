@@ -273,7 +273,7 @@ python nano_mcp_http_server.py
 # 输出: MCP Server running on http://127.0.0.1:8766/mcp
 
 # 终端 2：运行 Agent
-python nano_mcp_http_client.py "What is 3 + 5?"
+python nano_mcp_http_agent.py "What is 3 + 5?"
 # 输出:
 # [MCP] add({"a": 3, "b": 5})
 #   → 8
@@ -286,7 +286,7 @@ Server 是独立运行的 HTTP 服务。这意味着它可以跑在任何机器�
 
 ```bash
 export MCP_SERVER_URL="https://your-remote-server.com/mcp"
-python nano_mcp_http_client.py "What's the weather in Beijing?"
+python nano_mcp_http_agent.py "What's the weather in Beijing?"
 ```
 
 -----
