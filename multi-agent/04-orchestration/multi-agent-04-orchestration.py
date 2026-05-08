@@ -36,9 +36,13 @@ MOCK_PAGES = {
     "https://example.com/vllm": "vLLM 高吞吐" * 25,
     "https://example.com/trtllm": "TRT-LLM NVIDIA 优化" * 25,
 }
-MOCK_SEARCH = {k: [{"title": k, "url": f"https://example.com/{k.lower().replace(' ', '-')[:8]}",
-                    "snippet": f"{k} info"}]
-               for k in ["FlashAttention", "PagedAttention", "SGLang", "vLLM", "TensorRT-LLM"]}
+MOCK_SEARCH = {
+    "FlashAttention": [{"title": "FlashAttention", "url": "https://example.com/fa3", "snippet": "FlashAttention info"}],
+    "PagedAttention": [{"title": "PagedAttention", "url": "https://example.com/pa-v2", "snippet": "PagedAttention info"}],
+    "SGLang":         [{"title": "SGLang",         "url": "https://example.com/sglang", "snippet": "SGLang info"}],
+    "vLLM":           [{"title": "vLLM",           "url": "https://example.com/vllm", "snippet": "vLLM info"}],
+    "TensorRT-LLM":   [{"title": "TensorRT-LLM",   "url": "https://example.com/trtllm", "snippet": "TensorRT-LLM info"}],
+}
 
 
 def web_search(q):

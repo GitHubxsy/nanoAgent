@@ -123,8 +123,10 @@ def searcher(topic: str, state: SharedState) -> dict:
 
     tools = [
         {"type": "function", "function": {"name": "web_search",
+            "description": "Search the web. Returns a JSON list of {title, url, snippet}.",
             "parameters": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]}}},
         {"type": "function", "function": {"name": "web_read",
+            "description": "Fetch the full content of a URL.",
             "parameters": {"type": "object", "properties": {"url": {"type": "string"}}, "required": ["url"]}}},
     ]
 
