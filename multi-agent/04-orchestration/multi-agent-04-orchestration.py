@@ -89,12 +89,19 @@ def search_loop(messages, max_iters=8) -> str:
 
 def planner(q):
     m = llm_chat([
-        {"role": "system", "content": "把调研问题拆成 3-8 个独立子主题。JSON 数组。"},
+        {"role": "system", "content": "把调研问题拆成 3-8 个独立子主题。JSON 数组，每个元素是字符串。"},
         {"role": "user", "content": q},
     ])
     t = m.content or ""
     s, e = t.find("["), t.rfind("]")
-    return json.loads(t[s:e+1]) if s >= 0 < e else []
+    if not (s >= 0 < e):
+        return []
+    items = json.loads(t[s:e+1])
+    return [
+        item if isinstance(item, str)
+        else item.get("topic") or item.get("subtopic") or item.get("name") or str(item)
+        for item in items
+    ]
 
 
 def writer(q, summaries):
