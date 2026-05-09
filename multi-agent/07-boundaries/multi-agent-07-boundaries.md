@@ -1,290 +1,195 @@
 # 从零开始做 Multi-Agent 系统（七）：边界与反模式——什么时候该退回单 Agent
 
-> **「从零开始做 Multi-Agent 系统」系列** —— 第七篇（终章）。前六章我们一步步把单 Agent baseline 做成了一个产品级雏形的多 Agent 系统：1 Planner + N Searcher + Critic + Writer，加上文件通信、共享状态、错误处理、trace。这一章回头算账，看看哪些步真的赢了、哪些是"沟通税"，并给出反模式清单。
+> **「从零开始做 Multi-Agent 系统」系列** —— 第七篇（终章）。前六章一步步把单 Agent baseline 做成了产品级雏形的多 Agent 系统。这一章回头算账——哪些步真的赢了、哪些是"沟通税"，并给出反模式清单和折中方案。
 >
-> - [第一篇：什么时候单 Agent 不够](../01-when-single-agent-fails/)
-> - [第二篇：最小多 Agent 骨架](../02-minimum-skeleton/)
-> - [第三篇：Agent 之间怎么传话](../03-communication/)
-> - [第四篇：编排模式之争](../04-orchestration/)
-> - [第五篇：状态、记忆与上下文](../05-state-memory/)
-> - [第六篇：错误传播、重试与可观测性](../06-failure-trace/)
+> - [第一篇：什么时候单 Agent 不够](../01-when-single-agent-fails/multi-agent-01-when-single-agent-fails.md)
+> - [第二篇：最小多 Agent 骨架](../02-minimum-skeleton/multi-agent-02-minimum-skeleton.md)
+> - [第三篇：Agent 之间怎么传话](../03-communication/multi-agent-03-communication.md)
+> - [第四篇：编排模式之争](../04-orchestration/multi-agent-04-orchestration.md)
+> - [第五篇：状态、记忆与上下文](../05-state-memory/multi-agent-05-state-memory.md)
+> - [第六篇：错误传播、重试与可观测性](../06-failure-trace/multi-agent-06-failure-trace.md)
 > - **第七篇：边界与反模式**（本文）
 
 ---
 
-## 开场：六章之后，回头算账
+## 一、先说结论
 
-回到第一章那个 GPU 推理优化调研的问题——我们用单 Agent baseline 跑过一遍，看到它在四个地方崩溃。然后用六章把单 Agent 演化成多 Agent 系统。
+| 条件满足数 | 推荐方案 | 典型场景 |
+|-----------|---------|---------|
+| 0-1 个 | 单 Agent + 好 prompt | 代码生成、简单问答 |
+| 2 个 | 单 Agent + SubAgent 临时调用 | 中等复杂度的调研、分析 |
+| **3 个全满足** | **完整多 Agent 团队** | **大规模并行调研、跨域协作** |
 
-现在把这两端的数据摆出来对比：
+三个条件：**任务可并行 + 视角需多样 + 上下文需隔离**。
 
-| 指标 | 单 Agent baseline (第 01 章) | 完整多 Agent (第 06 章末) | 变化 |
-|------|------------------------------|---------------------------|------|
+一句话总结：**多 Agent 不是更高级的单 Agent，而是对一类特殊场景的针对性设计**。70% 看起来"需要多 Agent"的问题，单 Agent + SubAgent 就能解决。
+
+---
+
+## 二、六章之后，回头算账
+
+回到第一章的 GPU 推理优化调研问题，把单 Agent baseline 和完整多 Agent 的数据摆出来：
+
+| 指标 | 单 Agent baseline（第一章） | 完整多 Agent（第六章末） | 变化 |
+|------|---------------------------|------------------------|------|
 | 总耗时 | 30+ 分钟 | 13 分钟 | ↓ 57% |
 | 主循环 context 峰值 | ~120K tokens | ~15K tokens | ↓ 87% |
 | 总 token 消耗 | ~200K | ~480K | ↑ 140% |
 | 成功率（5/5 完整度） | 60% | 95% | ↑ 35pp |
-| 报告深度（人工打分 1-5） | 2.5 | 4.2 | ↑ 1.7 |
 | 信息冲突识别 | 0 个 | 2-3 个 | ↑ |
 | 代码量 | ~80 行 | ~570 行 | 7x |
-| 调试体验（1-5） | 1（黑箱） | 4（trace 完备） | ↑ |
-| 系统复杂度 | 低 | 高 | ↑ |
 
 读出几件事：
 
-1. **质量上多 Agent 全面胜出**：成功率 +35pp，深度 +1.7 分，识别出冲突。
-2. **耗时降了一半**——并行的功劳。
-3. **token 涨了 140%**——这就是"沟通税"，是质量提升的代价。
-4. **代码量涨了 7 倍**——多出来的 490 行里，**只有约 100 行是真正解决问题的核心逻辑**，其余 390 行是工程化骨架（错误处理、trace、scratchpad、retry）。
+1. **质量上多 Agent 全面胜出**——成功率 +35pp，识别出冲突
+2. **耗时降了一半**——并行的功劳
+3. **token 涨了 140%**——这就是"沟通税"
+4. **代码量涨了 7 倍**——多出来的 490 行里，只有约 100 行是核心逻辑，其余 390 行是工程骨架（错误处理、trace、scratchpad、retry）
 
-第 4 条很关键：**多 Agent 系统的"工程税"远大于"逻辑税"**。一个看起来 100 行能解决的问题，做成生产级多 Agent 要写 500 行——而这 500 行里大部分是工程基础设施。
+> **关键洞察**：**多 Agent 系统的"工程税"远大于"逻辑税"**。一个 100 行能讲清楚的想法，做成生产级实现要 500 行——多出来的全是工程基础设施。
 
 ---
 
-## 一、把成本拆开：哪些 token 是真的换来了价值
+## 三、Token 去哪了
 
-把第 06 章末版本的 480K token 消耗按用途拆开：
+把 480K token 按用途拆开：
 
-| 用途 | 占比 | 说明 |
+| 类别 | 占比 | 包含 |
 |------|------|------|
-| Searcher 实际调研（搜索 + 阅读 + 总结） | 50% | 真正的"工作 token" |
-| Planner 拆任务 + 调度 | 5% | 中央调度成本 |
-| Worker 之间的消息传递（任务、状态、路径） | 8% | 通信开销 |
-| 共享状态读写、去重检查 | 3% | 协调成本 |
-| Critic 批判 | 12% | 质量保证 |
-| Critic 触发的 Writer 修正 | 8% | 修正成本 |
-| 重试（API 失败、JSON 失败） | 5% | 鲁棒性成本 |
-| Trace 不耗 token，但占代码量 | - | - |
-| Schema 校验、错误反馈给模型重试 | 4% | 协议成本 |
-| 杂项（system prompt 重复、格式化等） | 5% | 噪声 |
+| 实际工作 | 50% | Searcher 搜索 + 阅读 + 总结 |
+| 质量保证 | 20% | Critic 批判 + Writer 修正 |
+| 沟通税 | 11% | 消息传递 + 协调 + 通信 |
+| 鲁棒性税 | 9% | 重试 + schema 校验 |
+| 其他 | 10% | 调度、格式化、system prompt |
 
-把这些归类：
+**只有一半的 token 是在做"实际调研"，另一半全是多 Agent 系统的运行成本。**
 
-- **真正的工作 token：50%**
-- **质量保证 token（critic + 修正）：20%**
-- **沟通税（消息 + 协调 + 通信）：11%**
-- **鲁棒性税（重试 + schema）：9%**
-- **其他：10%**
-
-也就是说，**只有一半的 token 是在做"实际调研"**，另一半全是多 Agent 系统的运行成本。
-
-这是不是浪费？要看你怎么算。
-
-- 如果你只在乎"能跑通"，单 Agent 的 200K token 足够了
-- 如果你在乎"5/5 完整度 + 信息冲突识别 + 多角度"，多花 280K 换这些质量提升是合理的
-- 如果你在乎"半小时跑完"，多 Agent 的并行让耗时减半也是不能忽视的
+这是不是浪费？看你算什么账——如果在乎"5/5 完整度 + 冲突识别 + 多角度"，多花 280K 换这些质量提升是合理的。如果只在乎"能跑通"，单 Agent 200K 就够。
 
 ---
 
-## 二、反模式清单
-
-虽然这个 demo 的多 Agent 是值的，但**很多场景下多 Agent 是"为了多 Agent 而多 Agent"**。下面这五个反模式是踩坑高发区。
+## 四、五个反模式
 
 ### 反模式 1：任务本身串行，硬拆多 Agent
 
-**症状**：把一个本质串行的任务（A 的输出是 B 的输入，B 的输出是 C 的输入）硬拆成 A、B、C 三个 Agent。
-
-**为什么是反模式**：
-- 没有并行收益（结构上就是串行）
-- 增加了通信成本（A→B→C 的消息传递）
-- 增加了 schema 校验和 LLM 调用次数
-- 调试比单 Agent 复杂得多
-
-**正确姿势**：用单 Agent 的多步 prompt（chain-of-thought 或 plan-and-execute）。所有"步骤"在同一个 context 里，不需要跨 Agent 通信。
+A 的输出是 B 的输入，B 的输出是 C 的输入——没有并行收益，只增加通信成本。**用单 Agent 的多步 prompt 就行。**
 
 ### 反模式 2：Worker 需要频繁同步
 
-**症状**：N 个 worker 跑得风生水起，但每隔几秒就要互相同步状态——"我做到哪儿了"、"你做到哪儿了"。
-
-**为什么是反模式**：
-- 同步的通信成本可能超过并行的收益
-- 共享状态变成事实上的瓶颈
-- 调试地狱：到底哪次同步是因，哪次是果
-
-**正确姿势**：要么把任务真的拆独立（worker 之间完全不需要互通），要么压根不要拆——一个有规划能力的单 Agent 表现更好。
+N 个 worker 每隔几秒就要互相同步状态——同步的通信成本可能超过并行的收益。**要么把任务真的拆独立，要么压根不要拆。**
 
 ### 反模式 3：单 Agent 装得下，没必要拆
 
-**症状**：任务的总上下文 < 30K token，单 Agent 完全装得下，但你还是上了多 Agent。
-
-**为什么是反模式**：
-- 多 Agent 的"沟通税"在小任务上比例最高（甚至超过工作 token）
-- 调试和维护成本是固定的，但收益（隔离 context）不存在
-- 团队协调的开销 > 单人完成的开销
-
-**正确姿势**：先看任务规模。**< 30K context 单 Agent；30K-100K 单 Agent + SubAgent；> 100K 才考虑常驻多 Agent 团队**。
+总上下文 < 30K token，单 Agent 完全装得下。经验法则：**< 30K 单 Agent；30K-100K 单 Agent + SubAgent；> 100K 才考虑多 Agent 团队。**
 
 ### 反模式 4：多 Agent 当 KPI 用
 
-**症状**：团队 / 产品压力让"上多 Agent"成了目标，而不是手段。Demo 里展示"我们用了 8 个 Agent 协作"。
+"上多 Agent"成了目标而不是手段。Demo 里展示"我们用了 8 个 Agent 协作"。**诚实评估任务是否同时满足三个条件。**
 
-**为什么是反模式**：
-- 决策被反过来了——不是任务需要才用，而是为了用而用
-- 系统复杂度被人为推高
-- 维护成本长期摊销下来非常贵
+### 反模式 5：把多 Agent 当成更好 prompt 的替代
 
-**正确姿势**：诚实评估任务是否同时满足"任务可并行 + 视角需要多样 + 上下文需要隔离"三个条件。如果不满足，不管市场叙事怎么说，都用单 Agent。
-
-### 反模式 5：把"多 Agent"当成"更好的 prompt 工程"的替代
-
-**症状**：发现单 Agent prompt 写不好，于是上多 Agent 期望"自动协作能解决问题"。
-
-**为什么是反模式**：
-- prompt 没写好的问题，多 Agent 化只会让问题分散到 N 个地方
-- 每个 Agent 自己的 prompt 还是要写好——而且彼此之间还要写"协作 prompt"
-- 总 prompt 工程量上涨，每个 prompt 的质量反而下降
-
-**正确姿势**：先把单 Agent 的 prompt 调到最好。如果调到极致还是不行，再考虑是不是真的需要多 Agent。
+单 Agent prompt 写不好，于是上多 Agent 期望"自动协作能解决问题"。**prompt 没写好的问题，多 Agent 化只会让问题分散到 N 个地方。**
 
 ---
 
-## 三、折中方案：单 Agent + SubAgent 临时调用
+## 五、折中方案：单 Agent + SubAgent
 
-很多场景，**多 Agent 团队是过度设计，但纯单 Agent 又确实不够**。这种场景的最佳方案往往是**单 Agent + SubAgent 临时调用**。
+很多场景，**完整多 Agent 团队是过度设计，但纯单 Agent 又确实不够**。最佳方案往往是 SubAgent 临时调用。
 
-具体来说：
+配套代码在 [multi-agent-07-boundaries.py](./multi-agent-07-boundaries.py)，核心是 `MainAgent` 类：
 
 ```python
 class MainAgent:
-    """主 Agent。决策权在它手里，绝大部分任务它自己完成。"""
+    """单 Agent + 按需召唤 SubAgent。决策权一直在主 Agent。"""
 
-    def run(self, task):
-        while not self.is_done():
-            decision = self.decide()
+    def run(self, question: str) -> str:
+        topics = self._plan(question)
 
-            if decision.needs_isolated_search:
-                # 调用一个临时 SubAgent
-                # SubAgent 跑完就退出，不持久化
-                result = SubAgent("search").run(decision.query)
-                self.context.append(f"SubAgent 返回：{result}")
+        # 召唤搜索 SubAgent（可并行）
+        summaries = {}
+        with ThreadPoolExecutor(max_workers=len(topics)) as pool:
+            futs = {pool.submit(search_subagent, t): t for t in topics}
+            for f in as_completed(futs):
+                summaries[futs[f]] = f.result()
 
-            elif decision.needs_critique:
-                result = SubAgent("critic").run(self.draft)
-                ...
+        # 主 Agent 自己整合（不需要 writer SubAgent）
+        report = self._draft(question, summaries)
 
-            elif decision.is_normal_action:
-                self.do_action(decision)
+        # 召唤 critic SubAgent（最多 2 轮）
+        for rnd in range(2):
+            issues = critic_subagent(report)
+            critical = [i for i in issues if i.get("severity") in ("critical", "major")]
+            if not critical:
+                break
+            report = self._revise(question, summaries, report, issues)
 
-        return self.output
+        return report
 ```
 
-这种模式的本质是：
+这种模式的本质：
 
-- **没有"团队"**：没有持久的多 Agent 关系
-- **有"临时帮手"**：主 Agent 在需要时召唤 SubAgent，用完就放
-- **没有共享状态**：SubAgent 完全独立，结果以参数形式返回
-- **没有复杂编排**：流程都在主 Agent 心里
+- **没有"团队"**——没有持久的多 Agent 关系
+- **有"临时帮手"**——主 Agent 在需要时召唤 SubAgent，用完就放
+- **没有共享状态**——SubAgent 完全独立，结果以参数形式返回
+- **没有复杂编排**——流程都在主 Agent 心里
 
-经验上，**这个模式能解决约 70% 看起来"需要多 Agent"的问题**。
+### 5.1 跑起来
 
-它的优势：
+```bash
+OPENAI_API_KEY=... python multi-agent-07-boundaries.py
+```
+
+### 5.2 对比
 
 | 维度 | 完整多 Agent 团队 | 单 Agent + SubAgent |
 |------|-------------------|---------------------|
 | 工程量 | 高（500+ 行） | 中（150-200 行） |
 | 调试难度 | 难 | 中 |
 | Token 开销 | 高 | 中 |
-| 灵活性 | 高 | 高 |
 | 可控性 | 中 | 高 |
-| 学习成本 | 高 | 低 |
 
-调研 demo 之所以选完整多 Agent 团队，是因为它**真的需要并行 + 视角多样 + 上下文隔离三件事一起满足**。但绝大多数代码生成、客服、数据分析任务，单 Agent + SubAgent 就够。
-
-这也是 Anthropic 在《Don't Build Multi-Agents》里真正想说的——**不是"永远不要用多 Agent"，是"先试试 SubAgent，再决定要不要团队"**。
+经验上，**这个模式能解决约 70% 看起来"需要多 Agent"的问题**。
 
 ---
 
-## 四、什么时候多 Agent 真的值得
+## 六、什么时候多 Agent 真的值得
 
-把整个系列的判断标准最终归纳成三个条件，**三个全满足才用完整多 Agent 团队**：
+三个条件全满足才用完整多 Agent 团队：
 
-### 条件 1：任务真的可以并行
+| 条件 | 含义 | 调研 demo 是否满足 |
+|------|------|-------------------|
+| 任务可并行 | 子任务之间没有时序依赖 | 是——5 个方案的调研互不依赖 |
+| 视角需多样 | 单视角输出不够，需要互相校验 | 是——需要 critic 对抗"被信息源带偏" |
+| 上下文需隔离 | 子任务的 context 塞一起会爆 | 是——5 个方案的资料加起来几十 K |
 
-子任务之间**没有时序依赖**，可以真正同时跑。这是硬条件——如果子任务必须串行，多 Agent 没有任何并行收益。
-
-调研 demo 满足：5 个方案的调研之间没有依赖。
-
-### 条件 2：视角多样性是核心需求
-
-**单视角的输出不够**，必须要不同立场的 Agent 互相校验或互补。这是最容易被滥用的条件——很多场景看起来"需要多视角"，其实只是 prompt 没写多角度。
-
-调研 demo 满足：需要 critic 视角对抗"被信息源带偏"。
-
-### 条件 3：上下文必须隔离
-
-每个子任务的 context 都很大，**塞在一起会爆**。这是最硬的条件——如果总 context < 单 Agent 的窗口，就没必要隔离。
-
-调研 demo 满足：5 个方案的资料加起来几十 K，不分隔必爆。
+**只满足 1 个**：单 Agent + 多步 prompt。
+**满足 2 个**：单 Agent + SubAgent。
+**满足 3 个**：完整多 Agent 团队。
 
 ---
 
-**只满足 1 个条件**：用单 Agent + 多步 prompt。
+## 七、终章思考：多 Agent 不是终点
 
-**满足 2 个条件**：用单 Agent + SubAgent 临时调用。
+诚实地说：**多 Agent 系统是当前阶段的产物，不是终极形态**。
 
-**满足 3 个条件**：才考虑完整多 Agent 团队。
+| 趋势 | 影响 |
+|------|------|
+| 模型上下文越来越长（200K → 1M+） | "上下文隔离"的动机被稀释 |
+| 模型自身 plan-and-execute 越来越强 | "视角多样"部分被模型内化 |
+| 工具调用并行化（parallel tool calls） | "必须多 Agent 才能并行"的论点变弱 |
 
----
-
-## 五、终章思考：多 Agent 不是终点
-
-写到这里，要诚实地说一句：**多 Agent 系统是当前阶段的产物，不是 AI 应用架构的终极形态**。
-
-往未来推几步，会看到几个变量：
-
-### 变量 1：模型上下文越来越长
-
-Claude 4 已经支持 200K+，未来 1M、10M 也会到。当上下文不再稀缺，**"上下文隔离"这个核心动机就被部分稀释**——很多今天必须多 Agent 的场景，明天单 Agent 就装得下。
-
-### 变量 2：模型自身的 plan-and-execute 越来越强
-
-当模型自己能做长程规划、自己能批判自己的输出，**"视角多样"也部分被模型内化**。今天需要 critic Agent，明天可能 reflection prompting 就够。
-
-### 变量 3：工具调用并行化
-
-OpenAI 的 parallel tool calls、Anthropic 的并行 search——这些让单 Agent 也能享受部分并行收益。**"必须多 Agent 才能并行"的论点会越来越弱**。
-
----
-
-但这不意味着多 Agent 会消失。它会**收敛到真正需要它的场景**：
-
-- 长任务（小时级到天级）
-- 跨域协作（每个 Agent 是真正的领域专家）
-- 异构模型协作（不同的 Agent 用不同模型，因为擅长不同任务）
-- 真正的多智能体游戏 / 仿真
-
-而调研、代码生成、客服这类**今天看起来需要多 Agent 的场景，未来大概率会回归单 Agent**——因为单 Agent 的能力会赶上来。
+多 Agent 会**收敛到真正需要它的场景**：长任务（小时级到天级）、跨域协作（每个 Agent 是真正的领域专家）、异构模型协作、多智能体仿真。而调研、代码生成、客服这类场景，**未来大概率会回归单 Agent**。
 
 ---
 
 ## 一句话总结（也是整个系列的总结）
 
-多 Agent 不是更高级的单 Agent，而是**对一类特殊场景的针对性设计**。
-
-判断标准：**任务可并行 + 视角需多样 + 上下文需隔离**——三个条件同时满足才值得做完整多 Agent 团队。
-
-只满足两个的，**单 Agent + SubAgent** 是更划算的折中方案。
-只满足一个或零个的，**好好写单 Agent 的 prompt 吧**——多 Agent 帮不了你。
-
-最重要的反常识：**多 Agent 系统的代码量里，工程税远大于逻辑税**。一个 100 行能讲清楚的"多 Agent 想法"，落到生产级实现是 500 行——多出来的 400 行全是错误处理、trace、共享状态、retry。这是你做选择前应该有的预期。
+多 Agent 不是更高级的单 Agent，而是**对一类特殊场景的针对性设计**。判断标准：**任务可并行 + 视角需多样 + 上下文需隔离**——三个条件同时满足才值得做完整多 Agent 团队。只满足两个的，单 Agent + SubAgent 更划算。最重要的反常识：**多 Agent 系统的代码量里，工程税远大于逻辑税**——一个 100 行能讲清楚的想法，落到生产级实现是 500 行。这是你做选择前应该有的预期。
 
 ---
 
-## 系列结束，但路还长
-
-这个系列从一个失败的单 Agent baseline 开始，用六章把它演化成一个产品级雏形。但这是**起点不是终点**——
-
-- 真实生产场景里，你的多 Agent 系统会遇到分布式、跨机器、异构模型、Agent 版本迭代、A/B 测试、人类介入等更复杂的问题
-- 这个 demo 的代码（约 570 行 Python）做得很简洁，但故意省了很多生产级的细节（比如完整的分布式锁、跨机器 storage、模型路由等）
-
-把这个 demo 当成你自己多 Agent 系统的起点。把每一章的设计选择当成"问题—权衡—方案"的样本，遇到自己的场景时回去翻——通常你会发现，**70% 的多 Agent 系统问题都已经在这七章里讨论过了**。
-
-剩下 30% 的问题，欢迎留言告诉我。这个系列的下一次更新，可能就是从你的问题开始。
+*配套代码 [multi-agent-07-boundaries.py](./multi-agent-07-boundaries.py) 演示单 Agent + SubAgent 折中方案，约 195 行。整个系列的完整多 Agent 版本约 570 行。*
 
 ---
 
-*整个系列的代码会单独整理一份完整版（约 600 行），放在 `multi-agent/full/` 目录下。*
-
----
-
-*「从零开始做 Multi-Agent 系统」系列建立在 [从零开始理解 Agent](../../agent/README.md) 之上。如果你还没读过 Agent 系列，建议从 [Agent 系列第一篇](../../agent/01-essence/) 开始。*
+*「从零开始做 Multi-Agent 系统」系列建立在 [从零开始理解 Agent](../../agent/README.md) 之上。如果你还没读过 Agent 系列，建议从 [Agent 系列第一篇](../../agent/01-essence/agent-essence.md) 开始。*

@@ -37,13 +37,13 @@
 
 | # | 标题 | 这一章 demo 长出什么 |
 |---|------|---------------------|
-| 01 | [什么时候单 Agent 不够](./01-when-single-agent-fails/) | 单 Agent baseline，亲眼看到它在哪些地方崩 |
-| 02 | [最小多 Agent 骨架：Supervisor + Workers](./02-minimum-skeleton/) | Planner + 并行 Searcher + Writer，第一版可跑 |
-| 03 | [Agent 之间怎么传话：消息、共享状态、文件](./03-communication/) | 数据通路成型：Searcher 写文件，Writer 读文件 |
-| 04 | [编排模式之争：Supervisor / Workflow / Swarm](./04-orchestration/) | 三种模式各重写一遍，对比后选定混合方案 |
-| 05 | [状态、记忆与上下文：每个 Agent 自带 vs 共享](./05-state-memory/) | shared scratchpad 解决去重和信息冲突 |
-| 06 | [错误传播、重试与可观测性](./06-failure-trace/) | 加 critic + 重试 + trace，demo 能真正交付 |
-| 07 | [边界与反模式：什么时候该退回单 Agent](./07-boundaries/) | 算账：哪些 token 真的换来了价值 |
+| 01 | [什么时候单 Agent 不够](./01-when-single-agent-fails/multi-agent-01-when-single-agent-fails.md) | 单 Agent baseline，亲眼看到它在哪些地方崩 |
+| 02 | [最小多 Agent 骨架](./02-minimum-skeleton/multi-agent-02-minimum-skeleton.md) | Planner + 并行 Searcher + Writer，第一版可跑 |
+| 03 | [Agent 之间怎么传话](./03-communication/multi-agent-03-communication.md) | 数据通路成型：Searcher 写文件，Writer 读文件 |
+| 04 | [编排模式之争](./04-orchestration/multi-agent-04-orchestration.md) | 三种模式各重写一遍，对比后选定混合方案 |
+| 05 | [状态、记忆与上下文](./05-state-memory/multi-agent-05-state-memory.md) | shared scratchpad 解决去重和信息冲突 |
+| 06 | [错误传播、重试与可观测性](./06-failure-trace/multi-agent-06-failure-trace.md) | 加 critic + 重试 + trace，demo 能真正交付 |
+| 07 | [边界与反模式](./07-boundaries/multi-agent-07-boundaries.md) | 算账：哪些 token 真的换来了价值 |
 
 ---
 
@@ -201,4 +201,4 @@
 
 ## 状态
 
-> 草稿大纲。代码与正文待写。
+> 全部 7 篇文章 + 配套代码已完成。

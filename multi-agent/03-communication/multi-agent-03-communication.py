@@ -109,7 +109,8 @@ def planner(question: str) -> list[str]:
     ])
     text = msg.content or ""
     start, end = text.find("["), text.rfind("]")
-    return json.loads(text[start:end+1]) if start >= 0 < end else []
+    items = json.loads(text[start:end+1]) if start >= 0 < end else []
+    return [i if isinstance(i, str) else (i.get("subtopic") or i.get("topic") or str(i)) for i in items]
 
 
 def searcher(topic: str, state: SharedState) -> dict:
