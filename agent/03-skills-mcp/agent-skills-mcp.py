@@ -8,15 +8,25 @@ from pathlib import Path
 from typing import Any
 from openai import OpenAI
 
+def load_config():
+    """从项目根目录的 .agent/config.json 加载配置（API Key、模型等）。"""
+    config_path = Path(__file__).resolve().parents[2] / ".agent" / "config.json"
+    with open(config_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+config = load_config()
+
+# 初始化 OpenAI 兼容客户端（支持任何兼容 OpenAI 接口的模型服务）
 client = OpenAI(
-    api_key=os.environ.get("OPENAI_API_KEY"),
-    base_url=os.environ.get("OPENAI_BASE_URL"),
+    api_key=config["OPENAI_API_KEY"],
+    base_url=config["OPENAI_BASE_URL"],
     http_client=httpx.Client(verify=False),
 )
 
-RULES_DIR = ".agent/rules"
-SKILLS_DIR = ".agent/skills"
-MCP_CONFIG = ".agent/mcp.json"
+RULES_DIR = "../../.agent/rules"
+SKILLS_DIR = "../../.agent/skills"
+MCP_CONFIG = "../../.agent/mcp.json"
 DEFAULT_MAX_ITERATIONS = 10
 
 base_tools = [
@@ -111,7 +121,7 @@ base_tools = [
 
 def read(path, offset=None, limit=None):
     try:
-        with open(path, "r") as f:
+        with open(path, "r", encoding="utf-8") as f:
             lines = f.readlines()
         start = offset if offset else 0
         end = start + limit if limit else len(lines)
@@ -125,7 +135,7 @@ def read(path, offset=None, limit=None):
 
 def write(path, content):
     try:
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             f.write(content)
         return f"Successfully wrote to {path}"
     except Exception as e:
@@ -134,12 +144,12 @@ def write(path, content):
 
 def edit(path, old_string, new_string):
     try:
-        with open(path, "r") as f:
+        with open(path, "r", encoding="utf-8") as f:
             content = f.read()
         if content.count(old_string) != 1:
             return f"Error: old_string must appear exactly once"
         new_content = content.replace(old_string, new_string)
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             f.write(new_content)
         return f"Successfully edited {path}"
     except Exception as e:
@@ -213,7 +223,7 @@ def load_rules():
         return ""
     try:
         for rule_file in sorted(Path(RULES_DIR).glob("*.md")):
-            with open(rule_file, "r") as f:
+            with open(rule_file, "r", encoding="utf-8") as f:
                 rules.append(f"# {rule_file.stem}\n{f.read()}")
         return "\n\n".join(rules) if rules else ""
     except:
@@ -292,7 +302,7 @@ def load_mcp_tools():
     if not os.path.exists(MCP_CONFIG):
         return []
     try:
-        with open(MCP_CONFIG, "r") as f:
+        with open(MCP_CONFIG, "r", encoding="utf-8") as f:
             config = json.load(f)
             mcp_tools = []
             for server_name, server_config in config.get("mcpServers", {}).items():
@@ -308,7 +318,7 @@ def load_mcp_tools():
 def run_agent_step(messages, tools, max_iterations=DEFAULT_MAX_ITERATIONS):
     for _ in range(max_iterations):
         response = client.chat.completions.create(
-            model=os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
+            model=config["OPENAI_MODEL"],
             messages=messages,
             tools=tools,
         )

@@ -1,14 +1,25 @@
-import os
 import json
 import subprocess
 import sys
 import httpx
+from pathlib import Path
 from datetime import datetime
 from openai import OpenAI
 
+
+def load_config():
+    """从项目根目录的 .agent/config.json 加载配置（API Key、模型等）。"""
+    config_path = Path(__file__).resolve().parents[2] / ".agent" / "config.json"
+    with open(config_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+config = load_config()
+
+# 初始化 OpenAI 兼容客户端（支持任何兼容 OpenAI 接口的模型服务）
 client = OpenAI(
-    api_key=os.environ.get("OPENAI_API_KEY"),
-    base_url=os.environ.get("OPENAI_BASE_URL"),
+    api_key=config["OPENAI_API_KEY"],
+    base_url=config["OPENAI_BASE_URL"],
     http_client=httpx.Client(verify=False),
 )
 
@@ -63,12 +74,12 @@ def execute_bash(command):
 
 
 def read_file(path):
-    with open(path, "r") as f:
+    with open(path, "r", encoding="utf-8") as f:
         return f.read()
 
 
 def write_file(path, content):
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         f.write(content)
     return f"Wrote to {path}"
 
@@ -77,9 +88,9 @@ functions = {"execute_bash": execute_bash, "read_file": read_file, "write_file":
 
 
 def load_memory():
-    if not os.path.exists(MEMORY_FILE):
+    if not Path(MEMORY_FILE).exists():
         return ""
-    with open(MEMORY_FILE, "r") as f:
+    with open(MEMORY_FILE, "r", encoding="utf-8") as f:
         lines = f.read().splitlines()
     return "\n".join(lines[-50:])
 
@@ -87,7 +98,7 @@ def load_memory():
 def save_memory(task, result):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     entry = f"\n## {timestamp}\n**Task:** {task}\n**Result:** {result}\n"
-    with open(MEMORY_FILE, "a") as f:
+    with open(MEMORY_FILE, "a", encoding="utf-8") as f:
         f.write(entry)
     print(f"[Memory] Saved to {MEMORY_FILE}")
 
@@ -104,11 +115,11 @@ def build_messages(user_message):
     ]
 
 
-def run_agent(user_message, max_iterations=5):
+def run_agent(user_message, max_iterations=20):
     messages = build_messages(user_message)
     for _ in range(max_iterations):
         response = client.chat.completions.create(
-            model=os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
+            model=config["OPENAI_MODEL"],
             messages=messages,
             tools=tools,
         )
