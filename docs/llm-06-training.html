@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LLM 06. 训练：参数是怎么“学”出来的｜从零开始理解大模型</title>
+  <meta name="description" content="训练就是不断预测、计算误差、反向传播、更新参数，让模型逐渐降低 Loss。">
+  <meta name="robots" content="index,follow">
+  <meta name="theme-color" content="#1f2430">
+  <link rel="canonical" href="https://githubxsy.github.io/nanoAgent/llm-06-training.html">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="从零开始理解agent">
+  <meta property="og:title" content="LLM 06. 训练：参数是怎么“学”出来的｜从零开始理解大模型">
+  <meta property="og:description" content="训练就是不断预测、计算误差、反向传播、更新参数，让模型逐渐降低 Loss。">
+  <meta property="og:url" content="https://githubxsy.github.io/nanoAgent/llm-06-training.html">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="LLM 06. 训练：参数是怎么“学”出来的｜从零开始理解大模型">
+  <meta name="twitter:description" content="训练就是不断预测、计算误差、反向传播、更新参数，让模型逐渐降低 Loss。">
+  <link rel="stylesheet" href="assets/style.css">
+  <script defer src="assets/site.js"></script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"LLM 06. 训练：参数是怎么“学”出来的","description":"训练就是不断预测、计算误差、反向传播、更新参数，让模型逐渐降低 Loss。","dateModified":"2026-06-07","inLanguage":"zh-CN","author":{"@type":"Organization","name":"GitHubxsy","url":"https://github.com/GitHubxsy/nanoAgent"},"publisher":{"@type":"Organization","name":"GitHubxsy","url":"https://github.com/GitHubxsy/nanoAgent"},"url":"https://githubxsy.github.io/nanoAgent/llm-06-training.html","keywords":["Training","Loss","Gradient"],"isPartOf":{"@type":"CreativeWorkSeries","name":"从零开始理解大模型","url":"https://githubxsy.github.io/nanoAgent/llm.html"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://githubxsy.github.io/nanoAgent/"},{"@type":"ListItem","position":2,"name":"LLM 讲义","item":"https://githubxsy.github.io/nanoAgent/llm.html"},{"@type":"ListItem","position":3,"name":"第 06 讲","item":"https://githubxsy.github.io/nanoAgent/llm-06-training.html"}]}</script>
+</head>
+<body class="article-body">
+  <a class="skip-link" href="#main-content">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span class="reading-progress-bar"></span></div>
+  <div class="site-shell">
+    <header class="site-header">
+      <a class="brand" href="llm.html">
+        <span class="brand-mark">LLM</span>
+        <span class="brand-text">从零开始理解大模型</span>
+      </a>
+      <nav class="top-nav">
+        <a href="llm.html">LLM 目录</a>
+        <a href="index.html">Agent 讲义</a>
+        <a href="summary.html">总结与延伸</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent">GitHub</a>
+      </nav>
+    </header>
+
+    <main class="article-layout" id="main-content">
+      <aside class="article-sidebar">
+        <div class="sidebar-card">
+          <p class="eyebrow">LLM 06 · 第六步：从猜错到猜准</p>
+          <h2 class="lesson-title">训练</h2>
+          <p>训练就是不断预测、计算误差、反向传播、更新参数，让模型逐渐降低 Loss。</p>
+          <div class="chip-row">
+            <span class="chip">7 分钟</span>
+            <span class="chip">277 行代码</span>
+            <span class="chip">Loss + Gradient Descent</span>
+          </div>
+        </div>
+
+        <div class="sidebar-card">
+          <h2>LLM 导航</h2>
+          <div class="chapter-rail">
+            <a class="chapter-rail-link" href="llm-01-next-token.html">
+              <span class="course-step">LLM 01</span>
+              <strong>下一个词预测</strong>
+              <small>Next Token Prediction</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-02-token.html">
+              <span class="course-step">LLM 02</span>
+              <strong>Token</strong>
+              <small>Tokenization + BPE</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-03-embedding.html">
+              <span class="course-step">LLM 03</span>
+              <strong>Embedding</strong>
+              <small>Embedding Vector</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-04-attention.html">
+              <span class="course-step">LLM 04</span>
+              <strong>Attention</strong>
+              <small>Query + Key + Value</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-05-transformer.html">
+              <span class="course-step">LLM 05</span>
+              <strong>Transformer</strong>
+              <small>Attention + FFN + Residual</small>
+            </a>
+
+            <a class="chapter-rail-link is-current" href="llm-06-training.html">
+              <span class="course-step">LLM 06</span>
+              <strong>训练</strong>
+              <small>Loss + Gradient Descent</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-07-inference.html">
+              <span class="course-step">LLM 07</span>
+              <strong>推理</strong>
+              <small>Prefill + Decode + KV Cache</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-08-context-window.html">
+              <span class="course-step">LLM 08</span>
+              <strong>上下文窗口</strong>
+              <small>Context Window</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-09-scaling-law.html">
+              <span class="course-step">LLM 09</span>
+              <strong>Scaling Law</strong>
+              <small>Scale + Loss</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-10-agent.html">
+              <span class="course-step">LLM 10</span>
+              <strong>LLM 到 Agent</strong>
+              <small>LLM + Tools + Loop</small>
+            </a>
+            </div>
+        </div>
+
+        <div class="sidebar-card">
+          <h2>页面目录</h2>
+          <nav class="toc">
+            <a class="toc-link" href="#scenario">为什么需要这一讲</a><a class="toc-link" href="#mental">先建立一个直觉</a><a class="toc-link" href="#code">看关键代码</a><a class="toc-link" href="#demo">运行观察</a><a class="toc-link" href="#practice">自己试一轮</a><a class="toc-link" href="#goals">这一讲看懂什么</a><a class="toc-link" href="#talk">讲解要点</a><a class="toc-link" href="#pitfalls">容易误解</a><a class="toc-link" href="#extend">继续阅读</a>
+          </nav>
+        </div>
+      </aside>
+
+      <article class="article-main">
+        <section class="article-hero">
+          <div class="breadcrumbs">
+            <a href="index.html">首页</a>
+            <span>/</span>
+            <a href="llm.html">LLM 讲义</a>
+            <span>/</span>
+            <span>第 06 页</span>
+          </div>
+          <p class="eyebrow">从零开始理解大模型</p>
+          <h1>06. 训练：参数是怎么“学”出来的</h1>
+          <p class="lead">训练就是不断预测、计算误差、反向传播、更新参数，让模型逐渐降低 Loss。</p>
+          <div class="tag-row"><span class="tag">Training</span><span class="tag">Loss</span><span class="tag">Gradient</span></div>
+          <div class="hero-actions">
+            <a class="primary-btn" href="#scenario">从场景开始</a>
+            <a class="secondary-btn" href="#demo">直接看演示</a>
+          </div>
+        </section>
+
+        <section class="lesson-section" id="scenario">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Scenario</p>
+            <h2>为什么需要这一讲</h2>
+          </div>
+          <p class="scenario-text">刚初始化的模型像一台乱猜的机器。训练的目标不是给它写规则，而是让它在大量样本上反复试错，把参数调到更容易猜对的位置。</p>
+        </section>
+
+        <section class="lesson-section" id="mental">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Mental Model</p>
+            <h2>先建立一个直觉</h2>
+          </div>
+          <p class="scenario-text">训练像调音台：Loss 告诉你声音偏了多少，梯度告诉你每个旋钮往哪边拧，优化器负责真的拧一下。</p>
+        </section>
+
+        <section class="lesson-section" id="code">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Code First</p>
+            <h2>看关键代码</h2>
+            <p>这里只保留最能说明机制的片段。完整代码可以在页面底部继续打开。</p>
+          </div>
+          <div class="code-group">
+
+            <article class="code-card">
+              <div class="code-card-head">
+                <div>
+                  <p class="lesson-index">微型 Transformer</p>
+                  <h3>这个模型很小，但结构和 GPT 类模型一致：Embedding、Transformer 层、LM Head。</h3>
+                </div>
+                <a class="source-link" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/06-training/train_tiny.py#L53-L82">看 GitHub 行号</a>
+              </div>
+              <pre class="code-block"><code class="language-python">  53 class TinyTransformer(nn.Module):
+  54     &quot;&quot;&quot;
+  55     一个极简的 Transformer 语言模型。
+  56     和 GPT-2 结构完全一样，只是小得多。
+  57     &quot;&quot;&quot;
+  58     def __init__(self, vocab_size, d_model=128, n_heads=4, n_layers=2,
+  59                  d_ff=256, max_len=64):
+  60         super().__init__()
+  61         self.d_model = d_model
+  62
+  63         # Embedding（第三篇）
+  64         self.token_emb = nn.Embedding(vocab_size, d_model)
+  65         self.pos_emb = nn.Embedding(max_len, d_model)
+  66
+  67         # Transformer 层（第四、五篇）
+  68         self.layers = nn.ModuleList([
+  69             TransformerLayer(d_model, n_heads, d_ff)
+  70             for _ in range(n_layers)
+  71         ])
+  72
+  73         # 最终 LayerNorm + LM Head
+  74         self.ln_f = nn.LayerNorm(d_model)
+  75         self.lm_head = nn.Linear(d_model, vocab_size, bias=False)
+  76
+  77         # 权重共享（第五篇第九节）
+  78         self.lm_head.weight = self.token_emb.weight
+  79
+  80         # 参数量统计
+  81         total = sum(p.numel() for p in self.parameters())
+  82         print(f&quot;模型参数量: {total:,} ({total/1000:.1f}K)&quot;)</code></pre>
+            </article>
+
+            <article class="code-card">
+              <div class="code-card-head">
+                <div>
+                  <p class="lesson-index">训练循环</p>
+                  <h3>训练的关键动作都在这里：取样、前向、算 Loss、反向传播、更新参数。</h3>
+                </div>
+                <a class="source-link" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/06-training/train_tiny.py#L172-L189">看 GitHub 行号</a>
+              </div>
+              <pre class="code-block"><code class="language-python"> 172 for step in range(n_steps):
+ 173     # 随机抽取训练片段
+ 174     ix = torch.randint(0, len(data) - seq_len - 1, (batch_size,))
+ 175     x = torch.stack([data[i:i+seq_len] for i in ix])       # 输入
+ 176     y = torch.stack([data[i+1:i+seq_len+1] for i in ix])   # 正确答案（下一个字符）
+ 177
+ 178     # 前向传播：预测
+ 179     logits = model(x)
+ 180
+ 181     # 计算 Loss（本篇第三节）
+ 182     loss = F.cross_entropy(logits.view(-1, vocab_size), y.view(-1))
+ 183
+ 184     # 反向传播：算梯度（本篇第四节）
+ 185     optimizer.zero_grad()
+ 186     loss.backward()
+ 187
+ 188     # 更新参数：梯度下降（本篇第四节）
+ 189     optimizer.step()</code></pre>
+            </article>
+
+          </div>
+        </section>
+
+        <section class="lesson-section" id="demo">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Live Demo</p>
+            <h2>运行观察</h2>
+            <p>用一个微型模型现场看到 Loss 下降，以及模型从乱猜到能续写训练句子。</p>
+          </div>
+          <div class="demo-box">
+            <p class="lesson-index">演示命令</p>
+            <pre class="demo-command"><code>python3 llm/06-training/train_tiny.py</code></pre>
+            <ul class="lesson-list"><li>启动时会打印训练数据长度、词表大小和模型参数量。</li><li>训练过程中每隔一段时间打印 Loss，通常会看到整体下降。</li><li>训练后用几个 prompt 生成文本，能看到模型学到了训练语料里的模式。</li><li>这个小模型不是为了好用，而是为了看清训练循环。</li></ul>
+          </div>
+        </section>
+
+        <section class="lesson-section" id="practice">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Try It</p>
+            <h2>自己试一轮</h2>
+            <p>用 Loss 曲线把“学习”讲成一个可以观察的工程过程。</p>
+          </div>
+          <ol class="lesson-steps"><li>把 <code class="inline">n_steps</code> 从 500 调小到 100，观察 Loss 是否下降得不够充分。</li><li>改几句训练文本，再看生成结果是否更偏向新语料。</li><li>对照 <code class="inline">TinyTransformer</code>，回看 Embedding、Attention、FFN 如何接在一起。</li></ol>
+        </section>
+
+        <section class="lesson-section" id="goals">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Takeaway</p>
+            <h2>这一讲看懂什么</h2>
+          </div>
+          <ul class="lesson-list"><li>训练的核心闭环是预测、算 Loss、反向传播、更新参数。</li><li>Loss 下降表示模型在训练数据上越来越不离谱。</li><li>真实大模型训练只是规模巨大，本质闭环并没有变。</li></ul>
+        </section>
+
+        <section class="lesson-section" id="talk">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Key Points</p>
+            <h2>讲解要点</h2>
+          </div>
+          <ul class="lesson-list"><li>模型参数不是人工写出来的，而是通过优化不断调出来的。</li><li>训练数据决定模型能学到什么，也决定它容易重复什么。</li><li>小模型能演示机制，但不能代表真实大模型的能力边界。</li></ul>
+        </section>
+
+        <section class="lesson-section" id="pitfalls">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Pitfalls</p>
+            <h2>容易误解</h2>
+          </div>
+          <ul class="lesson-list"><li>Loss 低不等于真实世界表现一定好，可能只是记住训练数据。</li><li>训练不是一次完成，大模型通常还有预训练、指令微调、偏好对齐等阶段。</li><li>不要把训练和推理混为一谈，训练会更新参数，推理通常不更新参数。</li></ul>
+        </section>
+
+        <section class="lesson-section" id="extend">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Extend</p>
+            <h2>继续阅读</h2>
+            <p>教学页只保留现场讲解需要的内容，完整文章与代码仍然保留在仓库中。</p>
+          </div>
+          <div class="deep-links">
+            <a class="secondary-btn" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/06-training/llm-06-training.md">读完整原文</a>
+            <a class="secondary-btn" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/06-training/train_tiny.py">看完整代码</a>
+            <a class="secondary-btn" href="llm.html">回到 LLM 目录</a>
+          </div>
+        </section>
+
+        <nav class="pager">
+          <a class="pager-link" href="llm-05-transformer.html"><span>上一页</span><strong>05. Transformer</strong></a>
+          <a class="pager-link" href="llm-07-inference.html"><span>下一页</span><strong>07. 推理</strong></a>
+        </nav>
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <p>本讲义仅保留关键代码、演示与延伸线索；收束页、番外与完整原文请见下方入口。</p>
+      <div class="footer-links">
+        <a href="llm.html">LLM 讲义</a>
+        <a href="summary.html">收束与延伸</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent">GitHub 仓库</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent/blob/book/agent/README_CN.md">系列导读</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/README.md">大模型导读</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent/blob/book/agent/build_site.py">站点生成器</a>
+      </div>
+    </footer>
+
+  </div>
+</body>
+</html>

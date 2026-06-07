@@ -227,6 +227,13 @@ button:focus-visible {
   background: radial-gradient(circle, rgba(246, 194, 119, 0.32), transparent 66%);
 }
 
+.llm-hero {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(137, 202, 185, 0.22), transparent 26%),
+    radial-gradient(circle at 90% 20%, rgba(255, 255, 255, 0.13), transparent 18%),
+    linear-gradient(135deg, #13212c 0%, #203b3b 52%, #a75a2d 118%);
+}
+
 .home-hero .hero-copy,
 .home-hero .hero-side {
   position: relative;
@@ -512,8 +519,9 @@ button:focus-visible {
 
 .format-step {
   display: inline-flex;
-  width: 44px;
+  min-width: 44px;
   height: 44px;
+  padding: 0 12px;
   align-items: center;
   justify-content: center;
   margin-bottom: 16px;

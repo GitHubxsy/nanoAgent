@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LLM 10. 从大模型到 Agent：下一个词预测如何长出手脚｜从零开始理解大模型</title>
+  <meta name="description" content="LLM 本身只生成 token；接上工具定义、执行函数和循环后，才变成能作用于外部世界的 Agent。">
+  <meta name="robots" content="index,follow">
+  <meta name="theme-color" content="#1f2430">
+  <link rel="canonical" href="https://githubxsy.github.io/nanoAgent/llm-10-agent.html">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="从零开始理解agent">
+  <meta property="og:title" content="LLM 10. 从大模型到 Agent：下一个词预测如何长出手脚｜从零开始理解大模型">
+  <meta property="og:description" content="LLM 本身只生成 token；接上工具定义、执行函数和循环后，才变成能作用于外部世界的 Agent。">
+  <meta property="og:url" content="https://githubxsy.github.io/nanoAgent/llm-10-agent.html">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="LLM 10. 从大模型到 Agent：下一个词预测如何长出手脚｜从零开始理解大模型">
+  <meta name="twitter:description" content="LLM 本身只生成 token；接上工具定义、执行函数和循环后，才变成能作用于外部世界的 Agent。">
+  <link rel="stylesheet" href="assets/style.css">
+  <script defer src="assets/site.js"></script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"LLM 10. 从大模型到 Agent：下一个词预测如何长出手脚","description":"LLM 本身只生成 token；接上工具定义、执行函数和循环后，才变成能作用于外部世界的 Agent。","dateModified":"2026-06-07","inLanguage":"zh-CN","author":{"@type":"Organization","name":"GitHubxsy","url":"https://github.com/GitHubxsy/nanoAgent"},"publisher":{"@type":"Organization","name":"GitHubxsy","url":"https://github.com/GitHubxsy/nanoAgent"},"url":"https://githubxsy.github.io/nanoAgent/llm-10-agent.html","keywords":["Agent","Tools","Loop"],"isPartOf":{"@type":"CreativeWorkSeries","name":"从零开始理解大模型","url":"https://githubxsy.github.io/nanoAgent/llm.html"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://githubxsy.github.io/nanoAgent/"},{"@type":"ListItem","position":2,"name":"LLM 讲义","item":"https://githubxsy.github.io/nanoAgent/llm.html"},{"@type":"ListItem","position":3,"name":"第 10 讲","item":"https://githubxsy.github.io/nanoAgent/llm-10-agent.html"}]}</script>
+</head>
+<body class="article-body">
+  <a class="skip-link" href="#main-content">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span class="reading-progress-bar"></span></div>
+  <div class="site-shell">
+    <header class="site-header">
+      <a class="brand" href="llm.html">
+        <span class="brand-mark">LLM</span>
+        <span class="brand-text">从零开始理解大模型</span>
+      </a>
+      <nav class="top-nav">
+        <a href="llm.html">LLM 目录</a>
+        <a href="index.html">Agent 讲义</a>
+        <a href="summary.html">总结与延伸</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent">GitHub</a>
+      </nav>
+    </header>
+
+    <main class="article-layout" id="main-content">
+      <aside class="article-sidebar">
+        <div class="sidebar-card">
+          <p class="eyebrow">LLM 10 · 第十步：接上工具和循环</p>
+          <h2 class="lesson-title">LLM 到 Agent</h2>
+          <p>LLM 本身只生成 token；接上工具定义、执行函数和循环后，才变成能作用于外部世界的 Agent。</p>
+          <div class="chip-row">
+            <span class="chip">7 分钟</span>
+            <span class="chip">223 行代码</span>
+            <span class="chip">LLM + Tools + Loop</span>
+          </div>
+        </div>
+
+        <div class="sidebar-card">
+          <h2>LLM 导航</h2>
+          <div class="chapter-rail">
+            <a class="chapter-rail-link" href="llm-01-next-token.html">
+              <span class="course-step">LLM 01</span>
+              <strong>下一个词预测</strong>
+              <small>Next Token Prediction</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-02-token.html">
+              <span class="course-step">LLM 02</span>
+              <strong>Token</strong>
+              <small>Tokenization + BPE</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-03-embedding.html">
+              <span class="course-step">LLM 03</span>
+              <strong>Embedding</strong>
+              <small>Embedding Vector</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-04-attention.html">
+              <span class="course-step">LLM 04</span>
+              <strong>Attention</strong>
+              <small>Query + Key + Value</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-05-transformer.html">
+              <span class="course-step">LLM 05</span>
+              <strong>Transformer</strong>
+              <small>Attention + FFN + Residual</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-06-training.html">
+              <span class="course-step">LLM 06</span>
+              <strong>训练</strong>
+              <small>Loss + Gradient Descent</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-07-inference.html">
+              <span class="course-step">LLM 07</span>
+              <strong>推理</strong>
+              <small>Prefill + Decode + KV Cache</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-08-context-window.html">
+              <span class="course-step">LLM 08</span>
+              <strong>上下文窗口</strong>
+              <small>Context Window</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-09-scaling-law.html">
+              <span class="course-step">LLM 09</span>
+              <strong>Scaling Law</strong>
+              <small>Scale + Loss</small>
+            </a>
+
+            <a class="chapter-rail-link is-current" href="llm-10-agent.html">
+              <span class="course-step">LLM 10</span>
+              <strong>LLM 到 Agent</strong>
+              <small>LLM + Tools + Loop</small>
+            </a>
+            </div>
+        </div>
+
+        <div class="sidebar-card">
+          <h2>页面目录</h2>
+          <nav class="toc">
+            <a class="toc-link" href="#scenario">为什么需要这一讲</a><a class="toc-link" href="#mental">先建立一个直觉</a><a class="toc-link" href="#code">看关键代码</a><a class="toc-link" href="#demo">运行观察</a><a class="toc-link" href="#practice">自己试一轮</a><a class="toc-link" href="#goals">这一讲看懂什么</a><a class="toc-link" href="#talk">讲解要点</a><a class="toc-link" href="#pitfalls">容易误解</a><a class="toc-link" href="#extend">继续阅读</a>
+          </nav>
+        </div>
+      </aside>
+
+      <article class="article-main">
+        <section class="article-hero">
+          <div class="breadcrumbs">
+            <a href="index.html">首页</a>
+            <span>/</span>
+            <a href="llm.html">LLM 讲义</a>
+            <span>/</span>
+            <span>第 10 页</span>
+          </div>
+          <p class="eyebrow">从零开始理解大模型</p>
+          <h1>10. 从大模型到 Agent：下一个词预测如何长出手脚</h1>
+          <p class="lead">LLM 本身只生成 token；接上工具定义、执行函数和循环后，才变成能作用于外部世界的 Agent。</p>
+          <div class="tag-row"><span class="tag">Agent</span><span class="tag">Tools</span><span class="tag">Loop</span></div>
+          <div class="hero-actions">
+            <a class="primary-btn" href="#scenario">从场景开始</a>
+            <a class="secondary-btn" href="#demo">直接看演示</a>
+          </div>
+        </section>
+
+        <section class="lesson-section" id="scenario">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Scenario</p>
+            <h2>为什么需要这一讲</h2>
+          </div>
+          <p class="scenario-text">模型可以写出“我会创建文件”，但不会真的创建文件。要让它动手，需要把工具说明发给模型，并由外部代码执行工具调用。</p>
+        </section>
+
+        <section class="lesson-section" id="mental">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Mental Model</p>
+            <h2>先建立一个直觉</h2>
+          </div>
+          <p class="scenario-text">LLM 像大脑，工具像手，循环像“看结果再决定下一步”的工作节奏。三者合在一起，才是最小 Agent。</p>
+        </section>
+
+        <section class="lesson-section" id="code">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Code First</p>
+            <h2>看关键代码</h2>
+            <p>这里只保留最能说明机制的片段。完整代码可以在页面底部继续打开。</p>
+          </div>
+          <div class="code-group">
+
+            <article class="code-card">
+              <div class="code-card-head">
+                <div>
+                  <p class="lesson-index">工具说明书</p>
+                  <h3>这段 JSON Schema 会发给模型，告诉模型有哪些工具、每个工具需要什么参数。</h3>
+                </div>
+                <a class="source-link" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/10-agent/tiny_agent.py#L34-L95">看 GitHub 行号</a>
+              </div>
+              <pre class="code-block"><code class="language-python">  34 # ==================== 2. 工具定义 ====================
+  35
+  36 # 这段 JSON Schema 会随每次请求发给模型
+  37 # 模型读到这个“说明书”后，就“知道”自己能执行命令和读写文件
+  38
+  39 tools = [
+  40     {
+  41         &quot;type&quot;: &quot;function&quot;,
+  42         &quot;function&quot;: {
+  43             &quot;name&quot;: &quot;execute_bash&quot;,
+  44             &quot;description&quot;: &quot;Execute a bash command on the system&quot;,
+  45             &quot;parameters&quot;: {
+  46                 &quot;type&quot;: &quot;object&quot;,
+  47                 &quot;properties&quot;: {
+  48                     &quot;command&quot;: {
+  49                         &quot;type&quot;: &quot;string&quot;,
+  50                         &quot;description&quot;: &quot;The bash command to execute&quot;,
+  51                     }
+  52                 },
+  53                 &quot;required&quot;: [&quot;command&quot;],
+  54             },
+  55         },
+  56     },
+  57     {
+  58         &quot;type&quot;: &quot;function&quot;,
+  59         &quot;function&quot;: {
+  60             &quot;name&quot;: &quot;read_file&quot;,
+  61             &quot;description&quot;: &quot;Read the contents of a file&quot;,
+  62             &quot;parameters&quot;: {
+  63                 &quot;type&quot;: &quot;object&quot;,
+  64                 &quot;properties&quot;: {
+  65                     &quot;path&quot;: {
+  66                         &quot;type&quot;: &quot;string&quot;,
+  67                         &quot;description&quot;: &quot;Path to the file&quot;,
+  68                     }
+  69                 },
+  70                 &quot;required&quot;: [&quot;path&quot;],
+  71             },
+  72         },
+  73     },
+  74     {
+  75         &quot;type&quot;: &quot;function&quot;,
+  76         &quot;function&quot;: {
+  77             &quot;name&quot;: &quot;write_file&quot;,
+  78             &quot;description&quot;: &quot;Write content to a file&quot;,
+  79             &quot;parameters&quot;: {
+  80                 &quot;type&quot;: &quot;object&quot;,
+  81                 &quot;properties&quot;: {
+  82                     &quot;path&quot;: {
+  83                         &quot;type&quot;: &quot;string&quot;,
+  84                         &quot;description&quot;: &quot;Path to the file&quot;,
+  85                     },
+  86                     &quot;content&quot;: {
+  87                         &quot;type&quot;: &quot;string&quot;,
+  88                         &quot;description&quot;: &quot;Content to write&quot;,
+  89                     },
+  90                 },
+  91                 &quot;required&quot;: [&quot;path&quot;, &quot;content&quot;],
+  92             },
+  93         },
+  94     },
+  95 ]</code></pre>
+            </article>
+
+            <article class="code-card">
+              <div class="code-card-head">
+                <div>
+                  <p class="lesson-index">Agent 核心循环</p>
+                  <h3>模型决定是否调用工具，代码执行工具，再把结果写回消息历史进入下一轮。</h3>
+                </div>
+                <a class="source-link" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/10-agent/tiny_agent.py#L136-L205">看 GitHub 行号</a>
+              </div>
+              <pre class="code-block"><code class="language-python"> 136 # ==================== 4. Agent 核心循环 ====================
+ 137
+ 138
+ 139 def run_agent(user_message, max_steps=10):
+ 140     &quot;&quot;&quot;
+ 141     Agent 的完整循环：
+ 142     1. 把用户消息发给 LLM
+ 143     2. LLM 输出文本 → 返回给用户，结束
+ 144     3. LLM 输出工具调用 → 执行工具 → 把结果加入消息历史 → 回到 1
+ 145     &quot;&quot;&quot;
+ 146     messages = [
+ 147         {&quot;role&quot;: &quot;system&quot;, &quot;content&quot;: &quot;You are a helpful assistant. Be concise.&quot;},
+ 148         {&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: user_message},
+ 149     ]
+ 150
+ 151     for step in range(max_steps):
+ 152         print(f&quot;\n\033[36m[Step {step + 1}]\033[0m 调用 LLM... &quot;, end=&quot;&quot;, flush=True)
+ 153
+ 154         # ---- 让大模型“想” ----
+ 155         # 这一步背后发生的事情：
+ 156         #   分词(第2篇) → Embedding(第3篇) → Attention(第4篇)
+ 157         #   → Transformer×N层(第5篇) → 逐token输出(第7篇)
+ 158         #   上下文窗口在增长(第8篇)，模型越大越准(第9篇)
+ 159         response = client.chat.completions.create(
+ 160             model=MODEL,
+ 161             messages=messages,
+ 162             tools=tools,
+ 163         )
+ 164
+ 165         choice = response.choices[0]
+ 166         assistant_msg = choice.message
+ 167
+ 168         # 把模型的回复加入消息历史
+ 169         messages.append(assistant_msg)
+ 170
+ 171         # ---- 判断：输出文本还是工具调用？ ----
+ 172         if not assistant_msg.tool_calls:
+ 173             # 模型输出了普通文本 → 任务结束
+ 174             print(&quot;回复文本&quot;)
+ 175             print(f&quot;\n\033[32m{assistant_msg.content}\033[0m&quot;)
+ 176             return assistant_msg.content
+ 177
+ 178         # ---- 模型输出了工具调用 → 让代码去“做” ----
+ 179         for tool_call in assistant_msg.tool_calls:
+ 180             func_name = tool_call.function.name
+ 181             func_args = json.loads(tool_call.function.arguments)
+ 182
+ 183             print(f&quot;调用工具 {func_name}({func_args})&quot;)
+ 184
+ 185             # 执行工具
+ 186             if func_name in available_tools:
+ 187                 result = available_tools[func_name](**func_args)
+ 188             else:
+ 189                 result = f&quot;未知工具: {func_name}&quot;
+ 190
+ 191             # 打印工具返回（截断过长的输出）
+ 192             display = result[:200] + &quot;...&quot; if len(result) &gt; 200 else result
+ 193             print(f&quot;  \033[33m→ {display}\033[0m&quot;)
+ 194
+ 195             # 把工具结果加入消息历史，让模型在下一轮看到
+ 196             messages.append(
+ 197                 {
+ 198                     &quot;role&quot;: &quot;tool&quot;,
+ 199                     &quot;tool_call_id&quot;: tool_call.id,
+ 200                     &quot;content&quot;: result,
+ 201                 }
+ 202             )
+ 203
+ 204     print(&quot;\n达到最大步数，停止。&quot;)
+ 205     return None</code></pre>
+            </article>
+
+          </div>
+        </section>
+
+        <section class="lesson-section" id="demo">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Live Demo</p>
+            <h2>运行观察</h2>
+            <p>把前九讲的模型机制接到 Agent：模型负责决策，代码负责执行，结果再回到上下文。</p>
+          </div>
+          <div class="demo-box">
+            <p class="lesson-index">演示命令</p>
+            <pre class="demo-command"><code>python3 llm/10-agent/tiny_agent.py &quot;查看当前目录下有哪些文件&quot;</code></pre>
+            <ul class="lesson-list"><li>脚本需要 <code class="inline">OPENAI_API_KEY</code> 和可选 <code class="inline">OPENAI_BASE_URL</code>。</li><li>运行时会打印 <code class="inline">[Step] 调用 LLM</code>，然后看到模型是否选择工具。</li><li>当模型调用 <code class="inline">execute_bash</code>、<code class="inline">read_file</code> 或 <code class="inline">write_file</code> 时，真正执行的是 Python 函数。</li><li>工具结果会作为 <code class="inline">tool</code> 消息写回上下文，模型据此进入下一轮。</li></ul>
+          </div>
+        </section>
+
+        <section class="lesson-section" id="practice">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Try It</p>
+            <h2>自己试一轮</h2>
+            <p>用 50 行最小 Agent 把 LLM 系列自然接到 Agent 系列。</p>
+          </div>
+          <ol class="lesson-steps"><li>先让它列目录，再让它读取一个小文件，观察工具调用差异。</li><li>临时移除 <code class="inline">write_file</code> 工具，看模型是否还能写文件。</li><li>对照 Agent 系列第一讲，理解两套课程如何接上。</li></ol>
+        </section>
+
+        <section class="lesson-section" id="goals">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Takeaway</p>
+            <h2>这一讲看懂什么</h2>
+          </div>
+          <ul class="lesson-list"><li>LLM 只输出意图，外部代码负责执行动作。</li><li>工具说明进入模型上下文，工具实现留在程序里。</li><li>Agent 是 LLM 能力的工程延伸，不是另一个神秘物种。</li></ul>
+        </section>
+
+        <section class="lesson-section" id="talk">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Key Points</p>
+            <h2>讲解要点</h2>
+          </div>
+          <ul class="lesson-list"><li>前九讲解释模型怎么生成 token，第十讲解释如何让 token 变成行动。</li><li>Tool schema 是模型能看到的能力说明书。</li><li>循环让 Agent 可以多步执行、观察结果、继续修正。</li></ul>
+        </section>
+
+        <section class="lesson-section" id="pitfalls">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Pitfalls</p>
+            <h2>容易误解</h2>
+          </div>
+          <ul class="lesson-list"><li>不要以为模型自己执行了命令，执行权始终在外部代码。</li><li>工具越强，越需要权限、安全和可观测性。</li><li>Agent 的质量仍然受上下文、模型能力和工具设计影响。</li></ul>
+        </section>
+
+        <section class="lesson-section" id="extend">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Extend</p>
+            <h2>继续阅读</h2>
+            <p>教学页只保留现场讲解需要的内容，完整文章与代码仍然保留在仓库中。</p>
+          </div>
+          <div class="deep-links">
+            <a class="secondary-btn" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/10-agent/llm-10-agent.md">读完整原文</a>
+            <a class="secondary-btn" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/10-agent/tiny_agent.py">看完整代码</a>
+            <a class="secondary-btn" href="llm.html">回到 LLM 目录</a>
+          </div>
+        </section>
+
+        <nav class="pager">
+          <a class="pager-link" href="llm-09-scaling-law.html"><span>上一页</span><strong>09. Scaling Law</strong></a>
+          <a class="pager-link" href="essence.html"><span>继续</span><strong>进入 Agent 第一讲</strong></a>
+        </nav>
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <p>本讲义仅保留关键代码、演示与延伸线索；收束页、番外与完整原文请见下方入口。</p>
+      <div class="footer-links">
+        <a href="llm.html">LLM 讲义</a>
+        <a href="summary.html">收束与延伸</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent">GitHub 仓库</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent/blob/book/agent/README_CN.md">系列导读</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/README.md">大模型导读</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent/blob/book/agent/build_site.py">站点生成器</a>
+      </div>
+    </footer>
+
+  </div>
+</body>
+</html>

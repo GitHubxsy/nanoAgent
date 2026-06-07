@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LLM 07. 推理：按下回车后的这一秒｜从零开始理解大模型</title>
+  <meta name="description" content="推理阶段不更新参数，而是把输入送进模型，逐 token 生成输出，并用 KV Cache 避免重复计算。">
+  <meta name="robots" content="index,follow">
+  <meta name="theme-color" content="#1f2430">
+  <link rel="canonical" href="https://githubxsy.github.io/nanoAgent/llm-07-inference.html">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="从零开始理解agent">
+  <meta property="og:title" content="LLM 07. 推理：按下回车后的这一秒｜从零开始理解大模型">
+  <meta property="og:description" content="推理阶段不更新参数，而是把输入送进模型，逐 token 生成输出，并用 KV Cache 避免重复计算。">
+  <meta property="og:url" content="https://githubxsy.github.io/nanoAgent/llm-07-inference.html">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="LLM 07. 推理：按下回车后的这一秒｜从零开始理解大模型">
+  <meta name="twitter:description" content="推理阶段不更新参数，而是把输入送进模型，逐 token 生成输出，并用 KV Cache 避免重复计算。">
+  <link rel="stylesheet" href="assets/style.css">
+  <script defer src="assets/site.js"></script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"LLM 07. 推理：按下回车后的这一秒","description":"推理阶段不更新参数，而是把输入送进模型，逐 token 生成输出，并用 KV Cache 避免重复计算。","dateModified":"2026-06-07","inLanguage":"zh-CN","author":{"@type":"Organization","name":"GitHubxsy","url":"https://github.com/GitHubxsy/nanoAgent"},"publisher":{"@type":"Organization","name":"GitHubxsy","url":"https://github.com/GitHubxsy/nanoAgent"},"url":"https://githubxsy.github.io/nanoAgent/llm-07-inference.html","keywords":["Inference","KV Cache","Decode"],"isPartOf":{"@type":"CreativeWorkSeries","name":"从零开始理解大模型","url":"https://githubxsy.github.io/nanoAgent/llm.html"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://githubxsy.github.io/nanoAgent/"},{"@type":"ListItem","position":2,"name":"LLM 讲义","item":"https://githubxsy.github.io/nanoAgent/llm.html"},{"@type":"ListItem","position":3,"name":"第 07 讲","item":"https://githubxsy.github.io/nanoAgent/llm-07-inference.html"}]}</script>
+</head>
+<body class="article-body">
+  <a class="skip-link" href="#main-content">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span class="reading-progress-bar"></span></div>
+  <div class="site-shell">
+    <header class="site-header">
+      <a class="brand" href="llm.html">
+        <span class="brand-mark">LLM</span>
+        <span class="brand-text">从零开始理解大模型</span>
+      </a>
+      <nav class="top-nav">
+        <a href="llm.html">LLM 目录</a>
+        <a href="index.html">Agent 讲义</a>
+        <a href="summary.html">总结与延伸</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent">GitHub</a>
+      </nav>
+    </header>
+
+    <main class="article-layout" id="main-content">
+      <aside class="article-sidebar">
+        <div class="sidebar-card">
+          <p class="eyebrow">LLM 07 · 第七步：回答是怎么生成的</p>
+          <h2 class="lesson-title">推理</h2>
+          <p>推理阶段不更新参数，而是把输入送进模型，逐 token 生成输出，并用 KV Cache 避免重复计算。</p>
+          <div class="chip-row">
+            <span class="chip">6 分钟</span>
+            <span class="chip">158 行代码</span>
+            <span class="chip">Prefill + Decode + KV Cache</span>
+          </div>
+        </div>
+
+        <div class="sidebar-card">
+          <h2>LLM 导航</h2>
+          <div class="chapter-rail">
+            <a class="chapter-rail-link" href="llm-01-next-token.html">
+              <span class="course-step">LLM 01</span>
+              <strong>下一个词预测</strong>
+              <small>Next Token Prediction</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-02-token.html">
+              <span class="course-step">LLM 02</span>
+              <strong>Token</strong>
+              <small>Tokenization + BPE</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-03-embedding.html">
+              <span class="course-step">LLM 03</span>
+              <strong>Embedding</strong>
+              <small>Embedding Vector</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-04-attention.html">
+              <span class="course-step">LLM 04</span>
+              <strong>Attention</strong>
+              <small>Query + Key + Value</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-05-transformer.html">
+              <span class="course-step">LLM 05</span>
+              <strong>Transformer</strong>
+              <small>Attention + FFN + Residual</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-06-training.html">
+              <span class="course-step">LLM 06</span>
+              <strong>训练</strong>
+              <small>Loss + Gradient Descent</small>
+            </a>
+
+            <a class="chapter-rail-link is-current" href="llm-07-inference.html">
+              <span class="course-step">LLM 07</span>
+              <strong>推理</strong>
+              <small>Prefill + Decode + KV Cache</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-08-context-window.html">
+              <span class="course-step">LLM 08</span>
+              <strong>上下文窗口</strong>
+              <small>Context Window</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-09-scaling-law.html">
+              <span class="course-step">LLM 09</span>
+              <strong>Scaling Law</strong>
+              <small>Scale + Loss</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-10-agent.html">
+              <span class="course-step">LLM 10</span>
+              <strong>LLM 到 Agent</strong>
+              <small>LLM + Tools + Loop</small>
+            </a>
+            </div>
+        </div>
+
+        <div class="sidebar-card">
+          <h2>页面目录</h2>
+          <nav class="toc">
+            <a class="toc-link" href="#scenario">为什么需要这一讲</a><a class="toc-link" href="#mental">先建立一个直觉</a><a class="toc-link" href="#code">看关键代码</a><a class="toc-link" href="#demo">运行观察</a><a class="toc-link" href="#practice">自己试一轮</a><a class="toc-link" href="#goals">这一讲看懂什么</a><a class="toc-link" href="#talk">讲解要点</a><a class="toc-link" href="#pitfalls">容易误解</a><a class="toc-link" href="#extend">继续阅读</a>
+          </nav>
+        </div>
+      </aside>
+
+      <article class="article-main">
+        <section class="article-hero">
+          <div class="breadcrumbs">
+            <a href="index.html">首页</a>
+            <span>/</span>
+            <a href="llm.html">LLM 讲义</a>
+            <span>/</span>
+            <span>第 07 页</span>
+          </div>
+          <p class="eyebrow">从零开始理解大模型</p>
+          <h1>07. 推理：按下回车后的这一秒</h1>
+          <p class="lead">推理阶段不更新参数，而是把输入送进模型，逐 token 生成输出，并用 KV Cache 避免重复计算。</p>
+          <div class="tag-row"><span class="tag">Inference</span><span class="tag">KV Cache</span><span class="tag">Decode</span></div>
+          <div class="hero-actions">
+            <a class="primary-btn" href="#scenario">从场景开始</a>
+            <a class="secondary-btn" href="#demo">直接看演示</a>
+          </div>
+        </section>
+
+        <section class="lesson-section" id="scenario">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Scenario</p>
+            <h2>为什么需要这一讲</h2>
+          </div>
+          <p class="scenario-text">你按下回车后，服务端不是瞬间吐出整段话，而是先处理完整输入，再一个 token 一个 token 地生成输出。</p>
+        </section>
+
+        <section class="lesson-section" id="mental">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Mental Model</p>
+            <h2>先建立一个直觉</h2>
+          </div>
+          <p class="scenario-text">推理像餐厅出餐：Prefill 是先读完整菜单和备注，Decode 是一道一道上菜，KV Cache 是把已读过的信息放在手边，不用每次重读。</p>
+        </section>
+
+        <section class="lesson-section" id="code">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Code First</p>
+            <h2>看关键代码</h2>
+            <p>这里只保留最能说明机制的片段。完整代码可以在页面底部继续打开。</p>
+          </div>
+          <div class="code-group">
+
+            <article class="code-card">
+              <div class="code-card-head">
+                <div>
+                  <p class="lesson-index">无 KV Cache：每步重算全部</p>
+                  <h3>没有缓存时，每生成一个 token 都要把全部历史重新送进模型。</h3>
+                </div>
+                <a class="source-link" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/07-inference/inference.py#L31-L57">看 GitHub 行号</a>
+              </div>
+              <pre class="code-block"><code class="language-python">  31 with torch.no_grad():
+  32     for step in range(max_new_tokens):
+  33         step_start = time.time()
+  34
+  35         # 每次把 全部已有 token 送入模型（无缓存）
+  36         outputs = model(generated)
+  37         next_logits = outputs.logits[0, -1, :]
+  38         next_token = torch.argmax(next_logits).unsqueeze(0).unsqueeze(0)
+  39         generated = torch.cat([generated, next_token], dim=1)
+  40
+  41         step_time = (time.time() - step_start) * 1000
+  42         step_times.append(step_time)
+  43
+  44         token_text = tokenizer.decode(next_token[0])
+  45         total_tokens = generated.shape[1]
+  46         print(f&quot;  Step {step+1:&gt;2}: &#x27;{token_text}&#x27; &quot;
+  47               f&quot;({step_time:.0f}ms, 处理了 {total_tokens} 个 token)&quot;)
+  48
+  49         if next_token.item() == tokenizer.eos_token_id:
+  50             break
+  51
+  52 no_cache_total = time.time() - start
+  53 no_cache_text = tokenizer.decode(generated[0])
+  54
+  55 print(f&quot;\n  总耗时: {no_cache_total*1000:.0f}ms&quot;)
+  56 print(f&quot;  平均每步: {sum(step_times)/len(step_times):.0f}ms&quot;)
+  57 print(f&quot;  输出: &#x27;{no_cache_text}&#x27;&quot;)</code></pre>
+            </article>
+
+            <article class="code-card">
+              <div class="code-card-head">
+                <div>
+                  <p class="lesson-index">有 KV Cache：Prefill 后只处理新 token</p>
+                  <h3>第一次处理完整输入，后续只处理新 token，这就是推理加速的关键。</h3>
+                </div>
+                <a class="source-link" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/07-inference/inference.py#L72-L109">看 GitHub 行号</a>
+              </div>
+              <pre class="code-block"><code class="language-python">  72 with torch.no_grad():
+  73     for step in range(max_new_tokens):
+  74         step_start = time.time()
+  75
+  76         if past_kv is None:
+  77             # Prefill：第一次，处理全部输入
+  78             outputs = model(input_ids, use_cache=True)
+  79             phase = &quot;Prefill&quot;
+  80             tokens_processed = input_ids.shape[1]
+  81         else:
+  82             # Decode：后续，只处理最后一个新 token
+  83             outputs = model(next_token_ids, past_key_values=past_kv, use_cache=True)
+  84             phase = &quot;Decode&quot;
+  85             tokens_processed = 1
+  86
+  87         past_kv = outputs.past_key_values
+  88         next_logits = outputs.logits[0, -1, :]
+  89         next_token_id = torch.argmax(next_logits)
+  90         next_token_ids = next_token_id.unsqueeze(0).unsqueeze(0)
+  91         generated_ids = torch.cat([generated_ids, next_token_ids], dim=1)
+  92
+  93         step_time = (time.time() - step_start) * 1000
+  94         step_times_cached.append(step_time)
+  95
+  96         token_text = tokenizer.decode(next_token_id)
+  97         print(f&quot;  Step {step+1:&gt;2}: &#x27;{token_text}&#x27; &quot;
+  98               f&quot;({step_time:.0f}ms, {phase}, 处理了 {tokens_processed} 个 token)&quot;)
+  99
+ 100         if next_token_id.item() == tokenizer.eos_token_id:
+ 101             break
+ 102
+ 103 cache_total = time.time() - start
+ 104 cache_text = tokenizer.decode(generated_ids[0])
+ 105
+ 106 print(f&quot;\n  总耗时: {cache_total*1000:.0f}ms&quot;)
+ 107 print(f&quot;  Prefill: {step_times_cached[0]:.0f}ms&quot;)
+ 108 print(f&quot;  平均 Decode: {sum(step_times_cached[1:])/max(len(step_times_cached)-1,1):.0f}ms&quot;)
+ 109 print(f&quot;  输出: &#x27;{cache_text}&#x27;&quot;)</code></pre>
+            </article>
+
+          </div>
+        </section>
+
+        <section class="lesson-section" id="demo">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Live Demo</p>
+            <h2>运行观察</h2>
+            <p>对比有无 KV Cache 时，每一步处理 token 数和耗时的差异。</p>
+          </div>
+          <div class="demo-box">
+            <p class="lesson-index">演示命令</p>
+            <pre class="demo-command"><code>python3 llm/07-inference/inference.py</code></pre>
+            <ul class="lesson-list"><li>无 Cache 模式每一步都会重算全部已有 token，越生成越慢。</li><li>有 Cache 模式第一步 Prefill 较重，后续 Decode 只处理新 token。</li><li>脚本会打印加速比和 KV Cache 占用信息。</li><li>这能解释为什么长输出和高并发会给推理系统带来压力。</li></ul>
+          </div>
+        </section>
+
+        <section class="lesson-section" id="practice">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Try It</p>
+            <h2>自己试一轮</h2>
+            <p>把推理讲成 Prefill 和 Decode 两段，很多性能问题会立刻变清楚。</p>
+          </div>
+          <ol class="lesson-steps"><li>把 <code class="inline">max_new_tokens</code> 调大，观察无 Cache 模式的耗时增长。</li><li>修改 prompt 长度，观察 Prefill 成本变化。</li><li>对照第八讲，理解上下文越长为什么 KV Cache 越大。</li></ol>
+        </section>
+
+        <section class="lesson-section" id="goals">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Takeaway</p>
+            <h2>这一讲看懂什么</h2>
+          </div>
+          <ul class="lesson-list"><li>推理不改变模型参数，只根据当前上下文生成 token。</li><li>Prefill 处理输入，Decode 逐 token 输出。</li><li>KV Cache 用显存换速度，是推理系统的核心优化之一。</li></ul>
+        </section>
+
+        <section class="lesson-section" id="talk">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Key Points</p>
+            <h2>讲解要点</h2>
+          </div>
+          <ul class="lesson-list"><li>用户感知到的流式输出，本质是 Decode 阶段逐 token 返回。</li><li>推理快慢不仅由模型大小决定，也受上下文长度和生成长度影响。</li><li>KV Cache 是大模型服务成本的重要来源。</li></ul>
+        </section>
+
+        <section class="lesson-section" id="pitfalls">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Pitfalls</p>
+            <h2>容易误解</h2>
+          </div>
+          <ul class="lesson-list"><li>不要把“首 token 慢”和“后续 token 慢”混为一谈，它们对应不同阶段。</li><li>KV Cache 加速计算，但会占用显存。</li><li>输出越长，Decode 次数越多，成本自然更高。</li></ul>
+        </section>
+
+        <section class="lesson-section" id="extend">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Extend</p>
+            <h2>继续阅读</h2>
+            <p>教学页只保留现场讲解需要的内容，完整文章与代码仍然保留在仓库中。</p>
+          </div>
+          <div class="deep-links">
+            <a class="secondary-btn" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/07-inference/llm-07-inference.md">读完整原文</a>
+            <a class="secondary-btn" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/07-inference/inference.py">看完整代码</a>
+            <a class="secondary-btn" href="llm.html">回到 LLM 目录</a>
+          </div>
+        </section>
+
+        <nav class="pager">
+          <a class="pager-link" href="llm-06-training.html"><span>上一页</span><strong>06. 训练</strong></a>
+          <a class="pager-link" href="llm-08-context-window.html"><span>下一页</span><strong>08. 上下文窗口</strong></a>
+        </nav>
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <p>本讲义仅保留关键代码、演示与延伸线索；收束页、番外与完整原文请见下方入口。</p>
+      <div class="footer-links">
+        <a href="llm.html">LLM 讲义</a>
+        <a href="summary.html">收束与延伸</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent">GitHub 仓库</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent/blob/book/agent/README_CN.md">系列导读</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/README.md">大模型导读</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent/blob/book/agent/build_site.py">站点生成器</a>
+      </div>
+    </footer>
+
+  </div>
+</body>
+</html>

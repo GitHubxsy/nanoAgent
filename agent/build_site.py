@@ -79,6 +79,32 @@ class Lesson:
 
 
 @dataclass
+class LLMLesson:
+    slug: str
+    number: str
+    title: str
+    short_title: str
+    stage: str
+    lesson_minutes: str
+    summary: str
+    core: str
+    tags: List[str]
+    scenario: str
+    mental_model: str
+    demo_command: str
+    demo_goal: str
+    demo_expected: List[str]
+    takeaways: List[str]
+    practice_steps: List[str]
+    talk_points: List[str]
+    pitfalls: List[str]
+    workshop_prompt: str
+    md_path: Path
+    code_path: Path
+    snippets: List[Snippet]
+
+
+@dataclass
 class Resource:
     number: str
     label: str
@@ -103,7 +129,9 @@ def detect_source_branch() -> str:
         return "main"
 
 
-SOURCE_BRANCH = detect_source_branch()
+# The public teaching site should link to the stable source branch, not whichever
+# feature branch happens to regenerate docs locally.
+SOURCE_BRANCH = "book"
 
 
 LESSONS = [
@@ -552,6 +580,606 @@ LESSONS = [
 LESSONS = sorted(LESSONS, key=lambda lesson: lesson.number)
 
 
+LLM_LESSONS = [
+    LLMLesson(
+        slug="next-token",
+        number="01",
+        title='一切从“猜下一个词”开始',
+        short_title="下一个词预测",
+        stage="第一步：模型到底在做什么",
+        lesson_minutes="6 分钟",
+        summary="大模型不是一次性写完整答案，而是在每一步预测下一个 token，连续很多步后形成完整回复。",
+        core="Next Token Prediction",
+        tags=["Next Token", "Probability", "Temperature"],
+        scenario="当你输入“Thank you very”时，模型不会去数据库里查标准答案，而是在词表里给所有可能的下一个 token 排概率，然后选出一个继续往后写。",
+        mental_model="把大模型想成一个特别强的输入法：它每次只猜下一个 token，但猜得足够准、连续猜很多次，就像是在回答问题。",
+        demo_command=(
+            'python3 llm/01-next-token/predict.py "Thank you very"\n'
+            'python3 llm/01-next-token/generate.py "The meaning of life is" --temperature 0.3 --max-tokens 12\n'
+            'python3 llm/01-next-token/generate.py "The meaning of life is" --temperature 1.5 --max-tokens 12'
+        ),
+        demo_goal="把“生成回答”拆成可观察的概率表和逐词生成过程。",
+        demo_expected=[
+            "`predict.py` 会打印输入被切成哪些 token，以及下一个 token 的 Top 10 概率。",
+            "低 Temperature 会更偏向高概率 token，输出更稳定。",
+            "高 Temperature 会让低概率 token 也有机会被选中，输出更发散。",
+            "完整回答其实是“预测一个、拼上去、再预测下一个”的循环。",
+        ],
+        takeaways=[
+            "大模型的基本动作是预测下一个 token。",
+            "概率最高不等于唯一答案，采样策略会影响输出风格。",
+            "看懂这一讲，后面的 Token、Embedding、Attention 都是在解释“它怎么猜得更准”。",
+        ],
+        practice_steps=[
+            "换一个短输入，例如 `Once upon a time`，观察 Top 10 候选词是否符合直觉。",
+            "把 Temperature 分别设为 0.2、1.0、1.8，对比稳定性。",
+            "把 `--max-tokens` 调小，观察回答如何被截断。",
+        ],
+        talk_points=[
+            "“智能感”来自大量连续的小预测，而不是一次神秘的完整推理。",
+            "概率分布越集中，模型越确定；概率分布越分散，输出越容易变化。",
+            "Temperature 不是让模型更聪明，而是改变选择 token 时的随机程度。",
+        ],
+        pitfalls=[
+            "不要把“预测下一个 token”误解成简单背诵，它背后已经包含上下文计算。",
+            "不要把 Temperature 当成准确率开关，高温通常只是更发散。",
+            "一次输出看起来像一句话，底层却是一连串 token 选择。",
+        ],
+        workshop_prompt="先把大模型从“会聊天的黑盒”降维成“会连续预测 token 的系统”。",
+        md_path=REPO_ROOT / "llm/01-next-token/llm-01-next-token.md",
+        code_path=REPO_ROOT / "llm/01-next-token/predict.py",
+        snippets=[
+            Snippet(
+                title="取最后一个位置的预测",
+                start=38,
+                end=49,
+                focus="模型会对最后一个位置给出整个词表的分数，再用 softmax 变成概率。",
+            ),
+            Snippet(
+                title="查看最可能的下一个 token",
+                start=50,
+                end=65,
+                focus="Top K 候选词能直接显示：模型不是只知道一个答案，而是在多个可能性里选择。",
+            ),
+        ],
+    ),
+    LLMLesson(
+        slug="token",
+        number="02",
+        title='Token：大模型眼中的“字”长什么样',
+        short_title="Token",
+        stage="第二步：先把文字切开",
+        lesson_minutes="6 分钟",
+        summary="模型不直接读取中文、英文或代码，而是先把文本切成 token，再把 token ID 送入模型。",
+        core="Tokenization + BPE",
+        tags=["Token", "BPE", "Tokenizer"],
+        scenario="同一句话，在人眼里是自然语言；在模型眼里，是一串数字 ID。为什么中文、代码、URL 更容易吃掉上下文？答案往往从分词开始。",
+        mental_model="Token 像模型的拼图块：常见片段可以是一整块，不常见片段会被拆成更多小块。",
+        demo_command=(
+            'python3 llm/02-token/tokenizer_demo.py "Kubernetes is awesome"\n'
+            'python3 llm/02-token/tokenizer_demo.py "你好世界"\n'
+            'python3 llm/02-token/bpe_demo.py --merges 8'
+        ),
+        demo_goal="用分词结果解释：为什么同样长度的文本，在模型里成本和难度可能完全不同。",
+        demo_expected=[
+            "`tokenizer_demo.py` 会展示文本被切成哪些 token，以及对应的 token ID。",
+            "中英文、代码、URL 的 token 数量差异会很明显。",
+            "`bpe_demo.py` 会逐轮合并高频片段，展示词表是怎么长出来的。",
+            "没见过的新词也能被已有 token 拼出来，这就是子词分词的价值。",
+        ],
+        takeaways=[
+            "Token 是模型真正处理的基本单位。",
+            "BPE 的核心是不断合并高频相邻片段。",
+            "Token 数影响上下文长度、费用和推理开销。",
+        ],
+        practice_steps=[
+            "输入一段中文、一段英文、一段代码，对比 token 数。",
+            "把 `--merges` 从 5 改到 15，观察词表变大后分词如何变粗。",
+            "尝试 URL 或 JSON，观察它们为什么容易消耗更多 token。",
+        ],
+        talk_points=[
+            "模型不是看字符，而是看 token ID。",
+            "分词器决定模型第一眼看到的世界长什么样。",
+            "Token 是后续 Embedding、Attention、上下文窗口和计费的共同入口。",
+        ],
+        pitfalls=[
+            "Token 不等于中文汉字，也不等于英文单词。",
+            "字符数少不代表 token 少，尤其是代码、符号和 URL。",
+            "不同模型的分词器不同，token 数也会不同。",
+        ],
+        workshop_prompt="先让大家亲眼看到：同一段文字进入模型前，已经被改写成一串 token ID。",
+        md_path=REPO_ROOT / "llm/02-token/llm-02-token.md",
+        code_path=REPO_ROOT / "llm/02-token/bpe_demo.py",
+        snippets=[
+            Snippet(
+                title="统计相邻片段",
+                start=17,
+                end=23,
+                focus="BPE 的第一步很朴素：数一数哪些相邻片段最常一起出现。",
+            ),
+            Snippet(
+                title="逐轮合并高频片段",
+                start=43,
+                end=87,
+                focus="高频片段被合并成新 token，词表就是这样一点点训练出来的。",
+            ),
+        ],
+    ),
+    LLMLesson(
+        slug="embedding",
+        number="03",
+        title="向量与 Embedding：把文字变成数学",
+        short_title="Embedding",
+        stage="第三步：给 token 一个坐标",
+        lesson_minutes="6 分钟",
+        summary="Token ID 只是编号，模型还需要把它查成一串向量，才能在数学空间里计算相似、关系和上下文。",
+        core="Embedding Vector",
+        tags=["Embedding", "Vector", "Similarity"],
+        scenario="模型看到 `Paris` 不是看到一个城市名字，而是看到一串向量。向量之间的距离和方向，承载了“相似”“相关”“语义靠近”等信息。",
+        mental_model="Embedding 像给每个 token 发一张数学身份证：不是写着姓名，而是写着一串特征坐标。",
+        demo_command=(
+            'python3 llm/03-embedding/embedding.py "France" "Paris" "Germany" "Berlin" "cat" "dog"\n'
+            'python3 llm/03-embedding/context_embedding.py'
+        ),
+        demo_goal="从向量形状、相似度和一词多义三个角度理解 Embedding。",
+        demo_expected=[
+            "`embedding.py` 会打印 Embedding 表形状：词表大小 × 向量维度。",
+            "语义相关的词通常会有更高相似度，例如国家和首都、动物和动物。",
+            "`context_embedding.py` 会展示同一个 `bank` 在不同上下文中经过 Transformer 后向量发生变化。",
+            "固定 Embedding 是起点，真正的语境理解发生在后续层里。",
+        ],
+        takeaways=[
+            "Embedding 把 token ID 变成可计算的向量。",
+            "向量相似度可以表达粗粒度语义关系。",
+            "同一个 token 的最终表示会被上下文改写。",
+        ],
+        practice_steps=[
+            "换几组词，例如 `doctor`、`hospital`、`music`，观察相似度。",
+            "运行 `context_embedding.py`，重点看 `bank` 的 Embedding 层和最后一层差异。",
+            "打开代码中的 `embedding_table.shape`，对应理解“词表大小 × 向量维度”。",
+        ],
+        talk_points=[
+            "模型不能直接算文字，只能算数字向量。",
+            "Embedding 表本质上是一张大查找表。",
+            "上下文感知不是 Embedding 单独完成的，而是 Transformer 层逐步加工的结果。",
+        ],
+        pitfalls=[
+            "不要把向量维度理解成可人工命名的属性列，它们通常不是人类可读字段。",
+            "向量相似不等于事实正确，只表示表示空间里的接近。",
+            "静态 Embedding 无法单独解决一词多义。",
+        ],
+        workshop_prompt="用“身份证坐标”解释 Embedding，再用相似度输出验证它确实能表达关系。",
+        md_path=REPO_ROOT / "llm/03-embedding/llm-03-embedding.md",
+        code_path=REPO_ROOT / "llm/03-embedding/embedding.py",
+        snippets=[
+            Snippet(
+                title="Embedding 表",
+                start=23,
+                end=44,
+                focus="每个 token ID 对应 Embedding 表里的一行，这一行就是它进入模型后的向量。",
+            ),
+            Snippet(
+                title="用余弦相似度比较语义距离",
+                start=67,
+                end=93,
+                focus="向量之间可以算距离，距离越近，模型越容易把它们看成相关。",
+            ),
+        ],
+    ),
+    LLMLesson(
+        slug="attention",
+        number="04",
+        title='Attention：大模型的“阅读重点”机制',
+        short_title="Attention",
+        stage="第四步：知道该看哪里",
+        lesson_minutes="7 分钟",
+        summary="Attention 让每个 token 在生成表示时，按权重查看前面的 token，从而把上下文关系带进当前表示。",
+        core="Query + Key + Value",
+        tags=["Attention", "QKV", "Causal Mask"],
+        scenario="一句话里每个词的重要性不同。模型生成最后一个词时，不能平均看前面所有词，而要知道当前最该关注谁。",
+        mental_model="Attention 像读文章时划重点：当前词带着一个问题去前文找线索，相关的地方权重大，不相关的地方权重小。",
+        demo_command=(
+            'python3 llm/04-attention/attention.py "The capital of France is" --layer 0\n'
+            'python3 llm/04-attention/multi_head.py "The capital of France is" --layer 11'
+        ),
+        demo_goal="把抽象的 Attention 变成可观察的矩阵和热力图。",
+        demo_expected=[
+            "Attention 矩阵会显示每个 token 对前面 token 的关注权重。",
+            "右上角未来位置不可见，这是因果掩码的效果。",
+            "不同层、不同头可能关注不同 token，说明模型在多角度读取上下文。",
+            "最后一个 token 的注意力变化，可以直观看到模型如何汇总前文。",
+        ],
+        takeaways=[
+            "Attention 负责在上下文里分配注意力权重。",
+            "因果语言模型只能看当前位置及之前的 token。",
+            "多头注意力让模型能同时从多个角度理解一句话。",
+        ],
+        practice_steps=[
+            "换成 `I deposited money at the bank`，观察 `bank` 附近的注意力。",
+            "修改 `--layer`，对比浅层和深层关注点。",
+            "运行 `multi_head.py`，观察不同 head 是否看向不同 token。",
+        ],
+        talk_points=[
+            "Q、K、V 可以理解为：我在找什么、每个词提供什么索引、真正取走什么信息。",
+            "Attention 不是人类意义上的专注，而是一组可计算的权重。",
+            "因果掩码保证模型不能偷看未来答案。",
+        ],
+        pitfalls=[
+            "Attention 权重不是完整解释，只是一个重要观察窗口。",
+            "某个 head 看起来奇怪很正常，多头合起来才构成整体效果。",
+            "上下文越长，Attention 的计算成本越高。",
+        ],
+        workshop_prompt="用矩阵和热力图把“模型在看哪里”展示出来，比只讲公式更容易理解。",
+        md_path=REPO_ROOT / "llm/04-attention/llm-04-attention.md",
+        code_path=REPO_ROOT / "llm/04-attention/attention.py",
+        snippets=[
+            Snippet(
+                title="取出 Attention 矩阵",
+                start=24,
+                end=63,
+                focus="这段代码把模型内部的注意力权重取出来，并标出每个 token 最关注谁。",
+            ),
+            Snippet(
+                title="画出 ASCII 热力图",
+                start=66,
+                end=95,
+                focus="热力图让 Attention 从公式变成可观察结果，适合现场教学。",
+            ),
+        ],
+    ),
+    LLMLesson(
+        slug="transformer",
+        number="05",
+        title="Transformer 全景：积木怎么搭成大厦",
+        short_title="Transformer",
+        stage="第五步：把模块拼起来",
+        lesson_minutes="7 分钟",
+        summary="Transformer 把 Embedding、Attention、FFN、残差连接和 LayerNorm 堆叠起来，形成大模型的主体结构。",
+        core="Attention + FFN + Residual",
+        tags=["Transformer", "FFN", "Residual"],
+        scenario="前面几讲分别看了 token、向量和注意力。现在需要把这些积木放到一张图里，看清一层 Transformer 长什么样，很多层又是如何叠起来的。",
+        mental_model="一层 Transformer 像一次小组讨论：Attention 先看上下文，FFN 再做局部加工，残差连接负责保留原始信息。",
+        demo_command='python3 llm/05-transformer/transformer_anatomy.py "The capital of France is"',
+        demo_goal="拆开 GPT-2，看参数分布、数据形状和逐层变化。",
+        demo_expected=[
+            "脚本会先打印 GPT-2 的总参数量和各模块参数占比。",
+            "单层结构会展开 Attention、FFN、LayerNorm 等参数形状。",
+            "数据流追踪会显示 token 从 Embedding 一路经过 12 层 Transformer。",
+            "最后 LM Head 把隐藏向量重新映射回词表概率。",
+        ],
+        takeaways=[
+            "Transformer 是大模型的主体骨架。",
+            "Attention 负责看上下文，FFN 负责进一步加工表示。",
+            "残差连接让信息可以穿过很多层而不轻易丢失。",
+        ],
+        practice_steps=[
+            "换一句输入，看 token 数变化如何影响数据形状。",
+            "重点观察每层 `Attn后`、`FFN后` 的数值变化。",
+            "查看权重共享输出，理解输入 Embedding 和输出 LM Head 的关系。",
+        ],
+        talk_points=[
+            "Transformer 不是一个单独操作，而是一组模块的稳定组合。",
+            "层数越多，模型越能逐步加工复杂关系。",
+            "残差和 LayerNorm 是让深层模型稳定训练的重要工程结构。",
+        ],
+        pitfalls=[
+            "不要只记公式，先看清数据形状如何流动。",
+            "FFN 不是可有可无，它承担了大量参数和表示加工。",
+            "模型大不只是层数多，也包括宽度、头数、词表等共同变化。",
+        ],
+        workshop_prompt="把 Transformer 讲成“数据在一栋楼里逐层加工”，比直接堆术语更直观。",
+        md_path=REPO_ROOT / "llm/05-transformer/llm-05-transformer.md",
+        code_path=REPO_ROOT / "llm/05-transformer/transformer_anatomy.py",
+        snippets=[
+            Snippet(
+                title="参数分布总览",
+                start=24,
+                end=58,
+                focus="先看参数都在哪里，能帮助理解为什么 FFN 和 Attention 是主体。",
+            ),
+            Snippet(
+                title="逐层数据流",
+                start=74,
+                end=145,
+                focus="从 Embedding 到 12 层 Transformer，再到 LM Head，这就是一次前向传播的主路径。",
+            ),
+        ],
+    ),
+    LLMLesson(
+        slug="training",
+        number="06",
+        title='训练：参数是怎么“学”出来的',
+        short_title="训练",
+        stage="第六步：从猜错到猜准",
+        lesson_minutes="7 分钟",
+        summary="训练就是不断预测、计算误差、反向传播、更新参数，让模型逐渐降低 Loss。",
+        core="Loss + Gradient Descent",
+        tags=["Training", "Loss", "Gradient"],
+        scenario="刚初始化的模型像一台乱猜的机器。训练的目标不是给它写规则，而是让它在大量样本上反复试错，把参数调到更容易猜对的位置。",
+        mental_model="训练像调音台：Loss 告诉你声音偏了多少，梯度告诉你每个旋钮往哪边拧，优化器负责真的拧一下。",
+        demo_command='python3 llm/06-training/train_tiny.py',
+        demo_goal="用一个微型模型现场看到 Loss 下降，以及模型从乱猜到能续写训练句子。",
+        demo_expected=[
+            "启动时会打印训练数据长度、词表大小和模型参数量。",
+            "训练过程中每隔一段时间打印 Loss，通常会看到整体下降。",
+            "训练后用几个 prompt 生成文本，能看到模型学到了训练语料里的模式。",
+            "这个小模型不是为了好用，而是为了看清训练循环。",
+        ],
+        takeaways=[
+            "训练的核心闭环是预测、算 Loss、反向传播、更新参数。",
+            "Loss 下降表示模型在训练数据上越来越不离谱。",
+            "真实大模型训练只是规模巨大，本质闭环并没有变。",
+        ],
+        practice_steps=[
+            "把 `n_steps` 从 500 调小到 100，观察 Loss 是否下降得不够充分。",
+            "改几句训练文本，再看生成结果是否更偏向新语料。",
+            "对照 `TinyTransformer`，回看 Embedding、Attention、FFN 如何接在一起。",
+        ],
+        talk_points=[
+            "模型参数不是人工写出来的，而是通过优化不断调出来的。",
+            "训练数据决定模型能学到什么，也决定它容易重复什么。",
+            "小模型能演示机制，但不能代表真实大模型的能力边界。",
+        ],
+        pitfalls=[
+            "Loss 低不等于真实世界表现一定好，可能只是记住训练数据。",
+            "训练不是一次完成，大模型通常还有预训练、指令微调、偏好对齐等阶段。",
+            "不要把训练和推理混为一谈，训练会更新参数，推理通常不更新参数。",
+        ],
+        workshop_prompt="用 Loss 曲线把“学习”讲成一个可以观察的工程过程。",
+        md_path=REPO_ROOT / "llm/06-training/llm-06-training.md",
+        code_path=REPO_ROOT / "llm/06-training/train_tiny.py",
+        snippets=[
+            Snippet(
+                title="微型 Transformer",
+                start=53,
+                end=83,
+                focus="这个模型很小，但结构和 GPT 类模型一致：Embedding、Transformer 层、LM Head。",
+            ),
+            Snippet(
+                title="训练循环",
+                start=172,
+                end=190,
+                focus="训练的关键动作都在这里：取样、前向、算 Loss、反向传播、更新参数。",
+            ),
+        ],
+    ),
+    LLMLesson(
+        slug="inference",
+        number="07",
+        title="推理：按下回车后的这一秒",
+        short_title="推理",
+        stage="第七步：回答是怎么生成的",
+        lesson_minutes="6 分钟",
+        summary="推理阶段不更新参数，而是把输入送进模型，逐 token 生成输出，并用 KV Cache 避免重复计算。",
+        core="Prefill + Decode + KV Cache",
+        tags=["Inference", "KV Cache", "Decode"],
+        scenario="你按下回车后，服务端不是瞬间吐出整段话，而是先处理完整输入，再一个 token 一个 token 地生成输出。",
+        mental_model="推理像餐厅出餐：Prefill 是先读完整菜单和备注，Decode 是一道一道上菜，KV Cache 是把已读过的信息放在手边，不用每次重读。",
+        demo_command='python3 llm/07-inference/inference.py',
+        demo_goal="对比有无 KV Cache 时，每一步处理 token 数和耗时的差异。",
+        demo_expected=[
+            "无 Cache 模式每一步都会重算全部已有 token，越生成越慢。",
+            "有 Cache 模式第一步 Prefill 较重，后续 Decode 只处理新 token。",
+            "脚本会打印加速比和 KV Cache 占用信息。",
+            "这能解释为什么长输出和高并发会给推理系统带来压力。",
+        ],
+        takeaways=[
+            "推理不改变模型参数，只根据当前上下文生成 token。",
+            "Prefill 处理输入，Decode 逐 token 输出。",
+            "KV Cache 用显存换速度，是推理系统的核心优化之一。",
+        ],
+        practice_steps=[
+            "把 `max_new_tokens` 调大，观察无 Cache 模式的耗时增长。",
+            "修改 prompt 长度，观察 Prefill 成本变化。",
+            "对照第八讲，理解上下文越长为什么 KV Cache 越大。",
+        ],
+        talk_points=[
+            "用户感知到的流式输出，本质是 Decode 阶段逐 token 返回。",
+            "推理快慢不仅由模型大小决定，也受上下文长度和生成长度影响。",
+            "KV Cache 是大模型服务成本的重要来源。",
+        ],
+        pitfalls=[
+            "不要把“首 token 慢”和“后续 token 慢”混为一谈，它们对应不同阶段。",
+            "KV Cache 加速计算，但会占用显存。",
+            "输出越长，Decode 次数越多，成本自然更高。",
+        ],
+        workshop_prompt="把推理讲成 Prefill 和 Decode 两段，很多性能问题会立刻变清楚。",
+        md_path=REPO_ROOT / "llm/07-inference/llm-07-inference.md",
+        code_path=REPO_ROOT / "llm/07-inference/inference.py",
+        snippets=[
+            Snippet(
+                title="无 KV Cache：每步重算全部",
+                start=31,
+                end=57,
+                focus="没有缓存时，每生成一个 token 都要把全部历史重新送进模型。",
+            ),
+            Snippet(
+                title="有 KV Cache：Prefill 后只处理新 token",
+                start=72,
+                end=109,
+                focus="第一次处理完整输入，后续只处理新 token，这就是推理加速的关键。",
+            ),
+        ],
+    ),
+    LLMLesson(
+        slug="context-window",
+        number="08",
+        title='上下文窗口：模型的“工作记忆”有多大',
+        short_title="上下文窗口",
+        stage="第八步：记忆边界",
+        lesson_minutes="6 分钟",
+        summary="上下文窗口决定模型一次能看到多少 token；窗口越长，位置编码、Attention 计算和 KV Cache 压力越大。",
+        core="Context Window",
+        tags=["Context", "Position", "KV Cache"],
+        scenario="为什么模型不能无限记住所有对话？因为每次推理都要把上下文作为输入处理，长度越大，计算和显存压力越明显。",
+        mental_model="上下文窗口像工作台：东西可以放很多，但工作台越大，找东西、移动东西、维护现场的成本也越高。",
+        demo_command='python3 llm/08-context-window/context_window.py',
+        demo_goal="从位置编码、超长输入和 KV Cache 三个角度观察上下文窗口的边界。",
+        demo_expected=[
+            "GPT-2 的位置编码表会显示最大位置为 1024。",
+            "超出窗口时会触发截断或范围错误，说明窗口不是抽象概念。",
+            "KV Cache 显存估算会展示上下文长度增长带来的直接成本。",
+            "同一个目标句子放在更长填充文本后，预测也可能受影响。",
+        ],
+        takeaways=[
+            "上下文窗口是模型一次推理能看到的 token 上限。",
+            "长上下文不是免费能力，会带来计算、显存和检索质量问题。",
+            "Agent 的记忆、压缩、检索都在处理上下文窗口的现实边界。",
+        ],
+        practice_steps=[
+            "查看 `test_lengths`，理解为什么 GPT-2 会卡在 1024。",
+            "改 `context_lengths`，观察 KV Cache 显存估算如何变化。",
+            "把填充段数调大，观察预测 Top1 是否稳定。",
+        ],
+        talk_points=[
+            "能装下不代表能用好，长上下文也会稀释注意力。",
+            "位置编码告诉模型 token 在哪里。",
+            "KV Cache 让长上下文的成本从抽象限制变成具体显存占用。",
+        ],
+        pitfalls=[
+            "不要把上下文窗口等同于长期记忆，窗口外的信息模型看不到。",
+            "更长窗口不自动等于更高准确率。",
+            "截断上下文时，最容易丢掉早期但关键的信息。",
+        ],
+        workshop_prompt="把“模型会忘”讲成上下文窗口和显存成本，而不是拟人化解释。",
+        md_path=REPO_ROOT / "llm/08-context-window/llm-08-context-window.md",
+        code_path=REPO_ROOT / "llm/08-context-window/context_window.py",
+        snippets=[
+            Snippet(
+                title="位置编码表决定窗口边界",
+                start=26,
+                end=49,
+                focus="GPT-2 的最大位置来自位置编码表，这让上下文窗口变成一个具体限制。",
+            ),
+            Snippet(
+                title="KV Cache 随上下文增长",
+                start=174,
+                end=219,
+                focus="上下文越长，缓存的 K/V 越多，显存占用会线性增长。",
+            ),
+        ],
+    ),
+    LLMLesson(
+        slug="scaling-law",
+        number="09",
+        title='Scaling Law：为什么“大力出奇迹”有效',
+        short_title="Scaling Law",
+        stage="第九步：规模为什么重要",
+        lesson_minutes="6 分钟",
+        summary="Scaling Law 描述模型规模、数据规模、计算量和 Loss 之间的经验关系，解释了为什么更大模型通常更强。",
+        core="Scale + Loss",
+        tags=["Scaling Law", "Model Size", "Loss"],
+        scenario="为什么行业不断把模型做大、数据做多、算力堆高？不是因为迷信规模，而是经验上规模扩大后 Loss 会按规律下降。",
+        mental_model="Scaling Law 像工程里的压测曲线：不是保证每次都线性变好，但能告诉你继续投入规模时，大概率会往哪个方向走。",
+        demo_command='python3 llm/09-scaling-law/scaling_law.py --steps 50',
+        demo_goal="用几个不同大小的微型模型，观察参数量增加时 Loss 的整体趋势。",
+        demo_expected=[
+            "脚本会训练多组不同参数量的小模型。",
+            "结果表会打印参数量、Loss、log 参数量和 log Loss。",
+            "如果训练步数足够，通常能看到更大模型 Loss 更低的趋势。",
+            "这个实验只演示趋势，不等同于真实大模型训练结论。",
+        ],
+        takeaways=[
+            "模型能力提升常常来自参数、数据和算力共同扩大。",
+            "Scaling Law 关注的是趋势，不是某一次实验的绝对值。",
+            "规模带来能力，也带来训练、推理、成本和安全问题。",
+        ],
+        practice_steps=[
+            "先用 `--steps 50` 快速观察，再改成 200 看趋势是否更稳定。",
+            "查看 `configs`，理解每个模型规模差异来自哪里。",
+            "观察 log-log 输出，理解为什么 Scaling Law 常用对数图表示。",
+        ],
+        talk_points=[
+            "“大力出奇迹”背后是可观察的经验规律。",
+            "参数量不是唯一变量，数据量和计算量同样关键。",
+            "真实系统要在效果、成本、延迟之间做取舍。",
+        ],
+        pitfalls=[
+            "不要把小实验的数字当成真实大模型定律，只看趋势。",
+            "模型变大并不自动解决数据质量和对齐问题。",
+            "规模收益会有边际成本，工程上必须算账。",
+        ],
+        workshop_prompt="用小实验解释趋势，用边界提醒大家不要把规模神化。",
+        md_path=REPO_ROOT / "llm/09-scaling-law/llm-09-scaling-law.md",
+        code_path=REPO_ROOT / "llm/09-scaling-law/scaling_law.py",
+        snippets=[
+            Snippet(
+                title="构造不同规模的模型",
+                start=167,
+                end=199,
+                focus="同一份数据上训练不同参数量的模型，用 Loss 观察规模变化带来的趋势。",
+            ),
+            Snippet(
+                title="在 log-log 空间看趋势",
+                start=219,
+                end=233,
+                focus="Scaling Law 常用对数坐标观察，因为规模变化通常跨越多个数量级。",
+            ),
+        ],
+    ),
+    LLMLesson(
+        slug="agent",
+        number="10",
+        title="从大模型到 Agent：下一个词预测如何长出手脚",
+        short_title="LLM 到 Agent",
+        stage="第十步：接上工具和循环",
+        lesson_minutes="7 分钟",
+        summary="LLM 本身只生成 token；接上工具定义、执行函数和循环后，才变成能作用于外部世界的 Agent。",
+        core="LLM + Tools + Loop",
+        tags=["Agent", "Tools", "Loop"],
+        scenario="模型可以写出“我会创建文件”，但不会真的创建文件。要让它动手，需要把工具说明发给模型，并由外部代码执行工具调用。",
+        mental_model="LLM 像大脑，工具像手，循环像“看结果再决定下一步”的工作节奏。三者合在一起，才是最小 Agent。",
+        demo_command='python3 llm/10-agent/tiny_agent.py "查看当前目录下有哪些文件"',
+        demo_goal="把前九讲的模型机制接到 Agent：模型负责决策，代码负责执行，结果再回到上下文。",
+        demo_expected=[
+            "脚本需要 `OPENAI_API_KEY` 和可选 `OPENAI_BASE_URL`。",
+            "运行时会打印 `[Step] 调用 LLM`，然后看到模型是否选择工具。",
+            "当模型调用 `execute_bash`、`read_file` 或 `write_file` 时，真正执行的是 Python 函数。",
+            "工具结果会作为 `tool` 消息写回上下文，模型据此进入下一轮。",
+        ],
+        takeaways=[
+            "LLM 只输出意图，外部代码负责执行动作。",
+            "工具说明进入模型上下文，工具实现留在程序里。",
+            "Agent 是 LLM 能力的工程延伸，不是另一个神秘物种。",
+        ],
+        practice_steps=[
+            "先让它列目录，再让它读取一个小文件，观察工具调用差异。",
+            "临时移除 `write_file` 工具，看模型是否还能写文件。",
+            "对照 Agent 系列第一讲，理解两套课程如何接上。",
+        ],
+        talk_points=[
+            "前九讲解释模型怎么生成 token，第十讲解释如何让 token 变成行动。",
+            "Tool schema 是模型能看到的能力说明书。",
+            "循环让 Agent 可以多步执行、观察结果、继续修正。",
+        ],
+        pitfalls=[
+            "不要以为模型自己执行了命令，执行权始终在外部代码。",
+            "工具越强，越需要权限、安全和可观测性。",
+            "Agent 的质量仍然受上下文、模型能力和工具设计影响。",
+        ],
+        workshop_prompt="用 50 行最小 Agent 把 LLM 系列自然接到 Agent 系列。",
+        md_path=REPO_ROOT / "llm/10-agent/llm-10-agent.md",
+        code_path=REPO_ROOT / "llm/10-agent/tiny_agent.py",
+        snippets=[
+            Snippet(
+                title="工具说明书",
+                start=34,
+                end=95,
+                focus="这段 JSON Schema 会发给模型，告诉模型有哪些工具、每个工具需要什么参数。",
+            ),
+            Snippet(
+                title="Agent 核心循环",
+                start=136,
+                end=205,
+                focus="模型决定是否调用工具，代码执行工具，再把结果写回消息历史进入下一轮。",
+            ),
+        ],
+    ),
+]
+
+LLM_LESSONS = sorted(LLM_LESSONS, key=lambda lesson: lesson.number)
+
+
 HOME_FORMAT_CARDS = [
     (
         "场景切入",
@@ -631,6 +1259,10 @@ def page_url(filename: str) -> str:
     if filename == "index.html":
         return f"{SITE_URL}/"
     return f"{SITE_URL}/{filename}"
+
+
+def llm_lesson_filename(lesson: LLMLesson) -> str:
+    return f"llm-{lesson.number}-{lesson.slug}.html"
 
 
 def site_publisher() -> dict:
@@ -775,6 +1407,57 @@ def summary_structured_data() -> List[dict]:
                 ("首页", page_url("index.html")),
                 ("七讲讲义", page_url("index.html") + "#lessons"),
                 ("收束与延伸", page_url("summary.html")),
+            ]
+        ),
+    ]
+
+
+def llm_home_structured_data() -> List[dict]:
+    return [
+        {
+            "@context": "https://schema.org",
+            "@type": "Course",
+            "name": "从零开始理解大模型｜10 页教学讲义",
+            "description": "从下一个词预测、Token、Embedding、Attention、Transformer、训练、推理、上下文窗口、Scaling Law 到 Agent 的通俗教学讲义。",
+            "provider": site_publisher(),
+            "educationalLevel": "Beginner",
+            "inLanguage": "zh-CN",
+            "url": page_url("llm.html"),
+        },
+        breadcrumb_schema(
+            [
+                ("首页", page_url("index.html")),
+                ("LLM 讲义", page_url("llm.html")),
+            ]
+        ),
+    ]
+
+
+def llm_lesson_structured_data(lesson: LLMLesson) -> List[dict]:
+    filename = llm_lesson_filename(lesson)
+    return [
+        {
+            "@context": "https://schema.org",
+            "@type": "Article",
+            "headline": f"LLM {lesson.number}. {lesson.title}",
+            "description": strip_inline_marks(lesson.summary),
+            "dateModified": BUILD_DATE,
+            "inLanguage": "zh-CN",
+            "author": site_publisher(),
+            "publisher": site_publisher(),
+            "url": page_url(filename),
+            "keywords": lesson.tags,
+            "isPartOf": {
+                "@type": "CreativeWorkSeries",
+                "name": "从零开始理解大模型",
+                "url": page_url("llm.html"),
+            },
+        },
+        breadcrumb_schema(
+            [
+                ("首页", page_url("index.html")),
+                ("LLM 讲义", page_url("llm.html")),
+                (f"第 {lesson.number} 讲", page_url(filename)),
             ]
         ),
     ]
@@ -987,11 +1670,28 @@ def course_nav(current_slug: str) -> str:
     return "".join(items)
 
 
+def llm_course_nav(current_slug: str) -> str:
+    items = []
+    for lesson in LLM_LESSONS:
+        current_class = " is-current" if lesson.slug == current_slug else ""
+        items.append(
+            f'''
+            <a class="chapter-rail-link{current_class}" href="{llm_lesson_filename(lesson)}">
+              <span class="course-step">LLM {lesson.number}</span>
+              <strong>{html.escape(lesson.short_title)}</strong>
+              <small>{html.escape(lesson.core)}</small>
+            </a>
+            '''
+        )
+    return "".join(items)
+
+
 def build_footer() -> str:
     return f"""
     <footer class="site-footer">
       <p>本讲义仅保留关键代码、演示与延伸线索；收束页、番外与完整原文请见下方入口。</p>
       <div class="footer-links">
+        <a href="llm.html">LLM 讲义</a>
         <a href="summary.html">收束与延伸</a>
         <a href="{REPO_WEB_BASE}">GitHub 仓库</a>
         <a href="{github_blob_url(ROOT / 'README_CN.md')}">系列导读</a>
@@ -1115,7 +1815,7 @@ def build_home_page() -> str:
     summary_links = [
         ("summary.html", "查看收束页"),
         ("summary.html#extras", "查看 Agent 番外"),
-        ("summary.html#llm", "查看大模型目录"),
+        ("llm.html", "进入 LLM 讲义"),
     ]
     for (title, note), (href, label) in zip(SUMMARY_PATHS, summary_links):
         summary_cards.append(
@@ -1145,6 +1845,7 @@ def build_home_page() -> str:
         <a href="#agenda">时间分配</a>
         <a href="#format">分享结构</a>
         <a href="#lessons">七讲讲义</a>
+        <a href="llm.html">LLM 讲义</a>
         <a href="summary.html">总结与延伸</a>
         <a href="{REPO_WEB_BASE}">GitHub</a>
       </nav>
@@ -1159,10 +1860,12 @@ def build_home_page() -> str:
           <p class="mode-note">核心路径：Tool Loop → Memory → Rules / Skills / MCP → SubAgent → Teams → Context Compact → Safety</p>
           <div class="hero-actions">
             <a class="primary-btn" href="essence.html">从第 01 讲开始</a>
+            <a class="primary-btn" href="llm.html">进入 LLM 讲义</a>
             <a class="secondary-btn" href="#agenda">查看 60 分钟路线</a>
           </div>
           <div class="hero-metrics">
             <span><strong>7</strong> 个可运行脚本</span>
+            <span><strong>10</strong> 页 LLM 讲义</span>
             <span><strong>60</strong> 分钟实战分享</span>
             <span><strong>1</strong> 条工程主线</span>
           </div>
@@ -1240,6 +1943,407 @@ def build_home_page() -> str:
           {"".join(summary_cards)}
         </div>
       </section>
+    </main>
+    {build_footer()}
+  </div>
+</body>
+</html>
+"""
+
+
+def build_llm_home_page() -> str:
+    lesson_cards = []
+    for lesson in LLM_LESSONS:
+        lesson_cards.append(
+            f"""
+            <article class="lesson-card">
+              <p class="lesson-index">LLM {lesson.number} · {html.escape(lesson.stage)}</p>
+              <h3>{html.escape(lesson.title)}</h3>
+              <p>{format_inline(lesson.summary)}</p>
+              <div class="lesson-meta">
+                <span>{html.escape(lesson.lesson_minutes)}</span>
+                <span>{code_lines(lesson.code_path)} 行代码</span>
+                <span>{html.escape(lesson.core)}</span>
+              </div>
+              <p class="lesson-kicker">要点：{format_inline(lesson.workshop_prompt)}</p>
+              <div class="lesson-tag-row">{render_tags(lesson.tags, "tag")}</div>
+              <a class="lesson-link" href="{llm_lesson_filename(lesson)}">查看教学页</a>
+            </article>
+            """
+        )
+
+    path_cards = [
+        (
+            "01-02",
+            "文字如何进模型",
+            "先看模型如何预测下一个 token，再看文本如何被切成 token ID。",
+        ),
+        (
+            "03-05",
+            "模型如何理解上下文",
+            "Embedding 给 token 坐标，Attention 找重点，Transformer 把模块堆成主体结构。",
+        ),
+        (
+            "06-08",
+            "模型如何训练与回答",
+            "训练调参数，推理生成答案，上下文窗口决定一次能看到多少信息。",
+        ),
+        (
+            "09-10",
+            "能力如何扩展出来",
+            "Scaling Law 解释规模收益，Agent 展示 LLM 如何接上工具和循环。",
+        ),
+    ]
+    path_html = []
+    for step, title, note in path_cards:
+        path_html.append(
+            f"""
+            <article class="format-card format-card-feature">
+              <span class="format-step">{html.escape(step)}</span>
+              <h3>{html.escape(title)}</h3>
+              <p>{html.escape(note)}</p>
+            </article>
+            """
+        )
+
+    agenda_items = []
+    for lesson in LLM_LESSONS:
+        agenda_items.append(
+            f"""
+            <article class="agenda-item">
+              <p class="agenda-time">LLM {lesson.number}</p>
+              <div class="agenda-content">
+                <h3>{html.escape(lesson.short_title)}</h3>
+                <p>{format_inline(lesson.summary)}</p>
+              </div>
+            </article>
+            """
+        )
+
+    return f"""<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  {build_head("从零开始理解大模型｜10 页教学讲义", "10 页通俗教学讲义：从下一个词预测、Token、Embedding、Attention、Transformer、训练、推理、上下文窗口、Scaling Law 到 Agent。", "llm.html", "website", structured_data=llm_home_structured_data())}
+</head>
+<body>
+  <a class="skip-link" href="#main-content">跳到正文</a>
+  <div class="site-shell">
+    <header class="site-header">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">nanoAgent</span>
+        <span class="brand-text">从零开始理解大模型</span>
+      </a>
+      <nav class="top-nav">
+        <a href="index.html">Agent 首页</a>
+        <a href="#route">课程主线</a>
+        <a href="#lessons">10 页讲义</a>
+        <a href="#bonus">番外目录</a>
+        <a href="{REPO_WEB_BASE}">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="main-content">
+      <section class="hero-panel home-hero llm-hero">
+        <div class="hero-copy">
+          <p class="eyebrow">LLM 技术分享 · 10 页教学讲义</p>
+          <h1>从零开始理解大模型</h1>
+          <p class="hero-lead">不从公式开始，也不把概念堆满屏。先抓住“预测下一个 token”这条主线，再一路看清 Token、Embedding、Attention、Transformer、训练、推理、上下文窗口、Scaling Law 和 Agent。</p>
+          <p class="mode-note">核心路径：Next Token → Token → Embedding → Attention → Transformer → Training → Inference → Context → Scaling Law → Agent</p>
+          <div class="hero-actions">
+            <a class="primary-btn" href="{llm_lesson_filename(LLM_LESSONS[0])}">从第 01 页开始</a>
+            <a class="secondary-btn" href="index.html">返回 Agent 讲义</a>
+          </div>
+          <div class="hero-metrics">
+            <span><strong>10</strong> 个教学页</span>
+            <span><strong>10</strong> 篇正篇文章</span>
+            <span><strong>1</strong> 条模型主线</span>
+          </div>
+        </div>
+        <div class="hero-side hero-map">
+          <div class="hero-map-head">
+            <p class="eyebrow">Learning Route</p>
+            <h2>从会续写到会动手</h2>
+          </div>
+          <div class="route-stack">
+            <article class="route-step">
+              <span>01</span>
+              <div><strong>Next Token</strong><p>大模型的最小动作：预测下一个 token。</p></div>
+            </article>
+            <article class="route-step">
+              <span>02</span>
+              <div><strong>Token</strong><p>文本先被切成模型能处理的数字 ID。</p></div>
+            </article>
+            <article class="route-step">
+              <span>03-05</span>
+              <div><strong>Embedding / Attention / Transformer</strong><p>从坐标、重点到完整模型结构。</p></div>
+            </article>
+            <article class="route-step">
+              <span>06-08</span>
+              <div><strong>Training / Inference / Context</strong><p>模型怎么学会，怎么回答，为什么会有窗口边界。</p></div>
+            </article>
+            <article class="route-step">
+              <span>09-10</span>
+              <div><strong>Scaling Law / Agent</strong><p>规模带来能力，工具和循环让模型作用于外部世界。</p></div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section-block" id="route">
+        <div class="section-head">
+          <p class="eyebrow">Route</p>
+          <h2>10 页怎么串起来</h2>
+          <p>这套讲义按模型内部的真实链路组织：文字进入模型、模型加工上下文、模型被训练与服务，最后接到 Agent。</p>
+        </div>
+        <div class="format-grid">
+          {"".join(path_html)}
+        </div>
+      </section>
+
+      <section class="section-block" id="agenda">
+        <div class="section-head">
+          <p class="eyebrow">Agenda</p>
+          <h2>每页只讲一个核心问题</h2>
+          <p>每篇文章对应一个教学页，页面只保留最适合现场讲解的部分。</p>
+        </div>
+        <div class="agenda-list">
+          {"".join(agenda_items)}
+        </div>
+      </section>
+
+      <section class="section-block" id="lessons">
+        <div class="section-head">
+          <p class="eyebrow">Lesson Pack</p>
+          <h2>10 页 LLM 讲义</h2>
+          <p>统一按“场景 → 类比 → 关键代码 → 演示观察 → 误区”的节奏组织。</p>
+        </div>
+        <div class="lesson-grid">
+          {"".join(lesson_cards)}
+        </div>
+      </section>
+
+      <section class="section-block" id="bonus">
+        <div class="section-head">
+          <p class="eyebrow">Bonus</p>
+          <h2>番外目录</h2>
+          <p>番外用于延伸阅读，不进入 10 页主线：多模态、GPU、Token 计费、思考模式、MoE 与算子。</p>
+        </div>
+        <div class="lesson-grid">
+          {render_resource_cards(LLM_BONUS_RESOURCES, "读番外原文")}
+        </div>
+      </section>
+    </main>
+    {build_footer()}
+  </div>
+</body>
+</html>
+"""
+
+
+def build_llm_lesson_page(index: int, lesson: LLMLesson) -> str:
+    prev_lesson = LLM_LESSONS[index - 1] if index > 0 else None
+    next_lesson = LLM_LESSONS[index + 1] if index < len(LLM_LESSONS) - 1 else None
+
+    toc_links = [
+        ("scenario", "为什么需要这一讲"),
+        ("mental", "先建立一个直觉"),
+        ("code", "看关键代码"),
+        ("demo", "运行观察"),
+        ("practice", "自己试一轮"),
+        ("goals", "这一讲看懂什么"),
+        ("talk", "讲解要点"),
+        ("pitfalls", "容易误解"),
+        ("extend", "继续阅读"),
+    ]
+
+    snippet_cards = []
+    for snippet in lesson.snippets:
+        snippet_start, snippet_end = resolve_snippet_range(lesson.code_path, snippet)
+        snippet_cards.append(
+            f"""
+            <article class="code-card">
+              <div class="code-card-head">
+                <div>
+                  <p class="lesson-index">{html.escape(snippet.title)}</p>
+                  <h3>{format_inline(snippet.focus)}</h3>
+                </div>
+                <a class="source-link" href="{github_lines_url(lesson.code_path, snippet_start, snippet_end)}">看 GitHub 行号</a>
+              </div>
+              <pre class="code-block"><code class="language-python">{html.escape(excerpt_code(lesson.code_path, snippet_start, snippet_end))}</code></pre>
+            </article>
+            """
+        )
+
+    prev_link = (
+        f'<a class="pager-link" href="{llm_lesson_filename(prev_lesson)}"><span>上一页</span><strong>{prev_lesson.number}. {html.escape(prev_lesson.short_title)}</strong></a>'
+        if prev_lesson
+        else '<a class="pager-link" href="llm.html"><span>返回</span><strong>LLM 讲义目录</strong></a>'
+    )
+    next_link = (
+        f'<a class="pager-link" href="{llm_lesson_filename(next_lesson)}"><span>下一页</span><strong>{next_lesson.number}. {html.escape(next_lesson.short_title)}</strong></a>'
+        if next_lesson
+        else '<a class="pager-link" href="essence.html"><span>继续</span><strong>进入 Agent 第一讲</strong></a>'
+    )
+    filename = llm_lesson_filename(lesson)
+
+    return f"""<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  {build_head(f"LLM {lesson.number}. {lesson.title}｜从零开始理解大模型", lesson.summary, filename, "article", structured_data=llm_lesson_structured_data(lesson))}
+</head>
+<body class="article-body">
+  <a class="skip-link" href="#main-content">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span class="reading-progress-bar"></span></div>
+  <div class="site-shell">
+    <header class="site-header">
+      <a class="brand" href="llm.html">
+        <span class="brand-mark">LLM</span>
+        <span class="brand-text">从零开始理解大模型</span>
+      </a>
+      <nav class="top-nav">
+        <a href="llm.html">LLM 目录</a>
+        <a href="index.html">Agent 讲义</a>
+        <a href="summary.html">总结与延伸</a>
+        <a href="{REPO_WEB_BASE}">GitHub</a>
+      </nav>
+    </header>
+
+    <main class="article-layout" id="main-content">
+      <aside class="article-sidebar">
+        <div class="sidebar-card">
+          <p class="eyebrow">LLM {lesson.number} · {html.escape(lesson.stage)}</p>
+          <h2 class="lesson-title">{html.escape(lesson.short_title)}</h2>
+          <p>{format_inline(lesson.summary)}</p>
+          <div class="chip-row">
+            <span class="chip">{html.escape(lesson.lesson_minutes)}</span>
+            <span class="chip">{code_lines(lesson.code_path)} 行代码</span>
+            <span class="chip">{html.escape(lesson.core)}</span>
+          </div>
+        </div>
+
+        <div class="sidebar-card">
+          <h2>LLM 导航</h2>
+          <div class="chapter-rail">{llm_course_nav(lesson.slug)}</div>
+        </div>
+
+        <div class="sidebar-card">
+          <h2>页面目录</h2>
+          <nav class="toc">
+            {"".join(f'<a class="toc-link" href="#{anchor}">{html.escape(label)}</a>' for anchor, label in toc_links)}
+          </nav>
+        </div>
+      </aside>
+
+      <article class="article-main">
+        <section class="article-hero">
+          <div class="breadcrumbs">
+            <a href="index.html">首页</a>
+            <span>/</span>
+            <a href="llm.html">LLM 讲义</a>
+            <span>/</span>
+            <span>第 {lesson.number} 页</span>
+          </div>
+          <p class="eyebrow">从零开始理解大模型</p>
+          <h1>{lesson.number}. {html.escape(lesson.title)}</h1>
+          <p class="lead">{format_inline(lesson.summary)}</p>
+          <div class="tag-row">{render_tags(lesson.tags, "tag")}</div>
+          <div class="hero-actions">
+            <a class="primary-btn" href="#scenario">从场景开始</a>
+            <a class="secondary-btn" href="#demo">直接看演示</a>
+          </div>
+        </section>
+
+        <section class="lesson-section" id="scenario">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Scenario</p>
+            <h2>为什么需要这一讲</h2>
+          </div>
+          <p class="scenario-text">{format_inline(lesson.scenario)}</p>
+        </section>
+
+        <section class="lesson-section" id="mental">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Mental Model</p>
+            <h2>先建立一个直觉</h2>
+          </div>
+          <p class="scenario-text">{format_inline(lesson.mental_model)}</p>
+        </section>
+
+        <section class="lesson-section" id="code">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Code First</p>
+            <h2>看关键代码</h2>
+            <p>这里只保留最能说明机制的片段。完整代码可以在页面底部继续打开。</p>
+          </div>
+          <div class="code-group">
+            {"".join(snippet_cards)}
+          </div>
+        </section>
+
+        <section class="lesson-section" id="demo">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Live Demo</p>
+            <h2>运行观察</h2>
+            <p>{format_inline(lesson.demo_goal)}</p>
+          </div>
+          <div class="demo-box">
+            <p class="lesson-index">演示命令</p>
+            <pre class="demo-command"><code>{html.escape(lesson.demo_command)}</code></pre>
+            {render_bullets(lesson.demo_expected, "lesson-list")}
+          </div>
+        </section>
+
+        <section class="lesson-section" id="practice">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Try It</p>
+            <h2>自己试一轮</h2>
+            <p>{format_inline(lesson.workshop_prompt)}</p>
+          </div>
+          {render_steps(lesson.practice_steps)}
+        </section>
+
+        <section class="lesson-section" id="goals">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Takeaway</p>
+            <h2>这一讲看懂什么</h2>
+          </div>
+          {render_bullets(lesson.takeaways)}
+        </section>
+
+        <section class="lesson-section" id="talk">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Key Points</p>
+            <h2>讲解要点</h2>
+          </div>
+          {render_bullets(lesson.talk_points)}
+        </section>
+
+        <section class="lesson-section" id="pitfalls">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Pitfalls</p>
+            <h2>容易误解</h2>
+          </div>
+          {render_bullets(lesson.pitfalls)}
+        </section>
+
+        <section class="lesson-section" id="extend">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Extend</p>
+            <h2>继续阅读</h2>
+            <p>教学页只保留现场讲解需要的内容，完整文章与代码仍然保留在仓库中。</p>
+          </div>
+          <div class="deep-links">
+            <a class="secondary-btn" href="{github_blob_url(lesson.md_path)}">读完整原文</a>
+            <a class="secondary-btn" href="{github_blob_url(lesson.code_path)}">看完整代码</a>
+            <a class="secondary-btn" href="llm.html">回到 LLM 目录</a>
+          </div>
+        </section>
+
+        <nav class="pager">
+          {prev_link}
+          {next_link}
+        </nav>
+      </article>
     </main>
     {build_footer()}
   </div>
@@ -1474,7 +2578,7 @@ def build_summary_page() -> str:
     path_links = [
         ("summary.html#full", "完整版 Agent"),
         ("summary.html#extras", "Agent 番外"),
-        ("summary.html#llm", "大模型目录"),
+        ("llm.html", "LLM 教学讲义"),
     ]
     for (title, note), (href, label) in zip(SUMMARY_PATHS, path_links):
         path_cards.append(
@@ -1526,7 +2630,7 @@ def build_summary_page() -> str:
         <a href="index.html#agenda">时间分配</a>
         <a href="index.html#lessons">七讲讲义</a>
         <a href="#extras">Agent 番外</a>
-        <a href="#llm">大模型目录</a>
+        <a href="llm.html">LLM 讲义</a>
         <a href="{REPO_WEB_BASE}">GitHub</a>
       </nav>
     </header>
@@ -1638,6 +2742,10 @@ def build_summary_page() -> str:
             <h2>大模型序列文章目录</h2>
             <p>想把 Agent 再接回底层原理，可以顺着这套目录往回看：先正篇十讲，再番外六讲。</p>
           </div>
+          <div class="deep-links">
+            <a class="primary-btn" href="llm.html">进入 LLM 教学讲义</a>
+            <a class="secondary-btn" href="{github_blob_url(REPO_ROOT / 'llm/README.md')}">查看大模型导读</a>
+          </div>
           <p class="lesson-index">正篇十讲</p>
           <div class="lesson-grid">
             {render_resource_cards(LLM_MAIN_RESOURCES, "读原文")}
@@ -1688,6 +2796,7 @@ def build_not_found_page() -> str:
       </a>
       <nav class="top-nav">
         <a href="index.html">首页</a>
+        <a href="llm.html">LLM 讲义</a>
         <a href="summary.html">总结与延伸</a>
         <a href="{REPO_WEB_BASE}">GitHub</a>
       </nav>
@@ -1701,6 +2810,7 @@ def build_not_found_page() -> str:
           <p class="hero-lead">链接可能已经变更，或者你访问了一个不存在的地址。可以从首页重新进入，也可以直接跳到收束页继续阅读。</p>
           <div class="hero-actions">
             <a class="primary-btn" href="index.html">返回首页</a>
+            <a class="secondary-btn" href="llm.html">进入 LLM 讲义</a>
             <a class="secondary-btn" href="summary.html">进入收束页</a>
           </div>
         </div>
@@ -1742,7 +2852,13 @@ Sitemap: {SITE_URL}/sitemap.xml
 
 
 def build_sitemap_xml() -> str:
-    pages = ["index.html", "summary.html", *[f"{lesson.slug}.html" for lesson in LESSONS]]
+    pages = [
+        "index.html",
+        "summary.html",
+        "llm.html",
+        *[f"{lesson.slug}.html" for lesson in LESSONS],
+        *[llm_lesson_filename(lesson) for lesson in LLM_LESSONS],
+    ]
     entries = []
     for filename in pages:
         entries.append(
@@ -1787,6 +2903,10 @@ def tidy_output(text: str) -> str:
 def main() -> None:
     ensure_dirs()
     (DOCS_DIR / "index.html").write_text(tidy_output(build_home_page()), encoding="utf-8")
+    (DOCS_DIR / "llm.html").write_text(tidy_output(build_llm_home_page()), encoding="utf-8")
+    for index, lesson in enumerate(LLM_LESSONS):
+        page = tidy_output(build_llm_lesson_page(index, lesson))
+        (DOCS_DIR / llm_lesson_filename(lesson)).write_text(page, encoding="utf-8")
     for index, lesson in enumerate(LESSONS):
         page = tidy_output(build_lesson_page(index, lesson))
         (DOCS_DIR / f"{lesson.slug}.html").write_text(page, encoding="utf-8")

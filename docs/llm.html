@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>从零开始理解大模型｜10 页教学讲义</title>
+  <meta name="description" content="10 页通俗教学讲义：从下一个词预测、Token、Embedding、Attention、Transformer、训练、推理、上下文窗口、Scaling Law 到 Agent。">
+  <meta name="robots" content="index,follow">
+  <meta name="theme-color" content="#1f2430">
+  <link rel="canonical" href="https://githubxsy.github.io/nanoAgent/llm.html">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="从零开始理解agent">
+  <meta property="og:title" content="从零开始理解大模型｜10 页教学讲义">
+  <meta property="og:description" content="10 页通俗教学讲义：从下一个词预测、Token、Embedding、Attention、Transformer、训练、推理、上下文窗口、Scaling Law 到 Agent。">
+  <meta property="og:url" content="https://githubxsy.github.io/nanoAgent/llm.html">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="从零开始理解大模型｜10 页教学讲义">
+  <meta name="twitter:description" content="10 页通俗教学讲义：从下一个词预测、Token、Embedding、Attention、Transformer、训练、推理、上下文窗口、Scaling Law 到 Agent。">
+  <link rel="stylesheet" href="assets/style.css">
+  <script defer src="assets/site.js"></script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Course","name":"从零开始理解大模型｜10 页教学讲义","description":"从下一个词预测、Token、Embedding、Attention、Transformer、训练、推理、上下文窗口、Scaling Law 到 Agent 的通俗教学讲义。","provider":{"@type":"Organization","name":"GitHubxsy","url":"https://github.com/GitHubxsy/nanoAgent"},"educationalLevel":"Beginner","inLanguage":"zh-CN","url":"https://githubxsy.github.io/nanoAgent/llm.html"}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://githubxsy.github.io/nanoAgent/"},{"@type":"ListItem","position":2,"name":"LLM 讲义","item":"https://githubxsy.github.io/nanoAgent/llm.html"}]}</script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">跳到正文</a>
+  <div class="site-shell">
+    <header class="site-header">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">nanoAgent</span>
+        <span class="brand-text">从零开始理解大模型</span>
+      </a>
+      <nav class="top-nav">
+        <a href="index.html">Agent 首页</a>
+        <a href="#route">课程主线</a>
+        <a href="#lessons">10 页讲义</a>
+        <a href="#bonus">番外目录</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="main-content">
+      <section class="hero-panel home-hero llm-hero">
+        <div class="hero-copy">
+          <p class="eyebrow">LLM 技术分享 · 10 页教学讲义</p>
+          <h1>从零开始理解大模型</h1>
+          <p class="hero-lead">不从公式开始，也不把概念堆满屏。先抓住“预测下一个 token”这条主线，再一路看清 Token、Embedding、Attention、Transformer、训练、推理、上下文窗口、Scaling Law 和 Agent。</p>
+          <p class="mode-note">核心路径：Next Token → Token → Embedding → Attention → Transformer → Training → Inference → Context → Scaling Law → Agent</p>
+          <div class="hero-actions">
+            <a class="primary-btn" href="llm-01-next-token.html">从第 01 页开始</a>
+            <a class="secondary-btn" href="index.html">返回 Agent 讲义</a>
+          </div>
+          <div class="hero-metrics">
+            <span><strong>10</strong> 个教学页</span>
+            <span><strong>10</strong> 篇正篇文章</span>
+            <span><strong>1</strong> 条模型主线</span>
+          </div>
+        </div>
+        <div class="hero-side hero-map">
+          <div class="hero-map-head">
+            <p class="eyebrow">Learning Route</p>
+            <h2>从会续写到会动手</h2>
+          </div>
+          <div class="route-stack">
+            <article class="route-step">
+              <span>01</span>
+              <div><strong>Next Token</strong><p>大模型的最小动作：预测下一个 token。</p></div>
+            </article>
+            <article class="route-step">
+              <span>02</span>
+              <div><strong>Token</strong><p>文本先被切成模型能处理的数字 ID。</p></div>
+            </article>
+            <article class="route-step">
+              <span>03-05</span>
+              <div><strong>Embedding / Attention / Transformer</strong><p>从坐标、重点到完整模型结构。</p></div>
+            </article>
+            <article class="route-step">
+              <span>06-08</span>
+              <div><strong>Training / Inference / Context</strong><p>模型怎么学会，怎么回答，为什么会有窗口边界。</p></div>
+            </article>
+            <article class="route-step">
+              <span>09-10</span>
+              <div><strong>Scaling Law / Agent</strong><p>规模带来能力，工具和循环让模型作用于外部世界。</p></div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section-block" id="route">
+        <div class="section-head">
+          <p class="eyebrow">Route</p>
+          <h2>10 页怎么串起来</h2>
+          <p>这套讲义按模型内部的真实链路组织：文字进入模型、模型加工上下文、模型被训练与服务，最后接到 Agent。</p>
+        </div>
+        <div class="format-grid">
+
+            <article class="format-card format-card-feature">
+              <span class="format-step">01-02</span>
+              <h3>文字如何进模型</h3>
+              <p>先看模型如何预测下一个 token，再看文本如何被切成 token ID。</p>
+            </article>
+
+            <article class="format-card format-card-feature">
+              <span class="format-step">03-05</span>
+              <h3>模型如何理解上下文</h3>
+              <p>Embedding 给 token 坐标，Attention 找重点，Transformer 把模块堆成主体结构。</p>
+            </article>
+
+            <article class="format-card format-card-feature">
+              <span class="format-step">06-08</span>
+              <h3>模型如何训练与回答</h3>
+              <p>训练调参数，推理生成答案，上下文窗口决定一次能看到多少信息。</p>
+            </article>
+
+            <article class="format-card format-card-feature">
+              <span class="format-step">09-10</span>
+              <h3>能力如何扩展出来</h3>
+              <p>Scaling Law 解释规模收益，Agent 展示 LLM 如何接上工具和循环。</p>
+            </article>
+
+        </div>
+      </section>
+
+      <section class="section-block" id="agenda">
+        <div class="section-head">
+          <p class="eyebrow">Agenda</p>
+          <h2>每页只讲一个核心问题</h2>
+          <p>每篇文章对应一个教学页，页面只保留最适合现场讲解的部分。</p>
+        </div>
+        <div class="agenda-list">
+
+            <article class="agenda-item">
+              <p class="agenda-time">LLM 01</p>
+              <div class="agenda-content">
+                <h3>下一个词预测</h3>
+                <p>大模型不是一次性写完整答案，而是在每一步预测下一个 token，连续很多步后形成完整回复。</p>
+              </div>
+            </article>
+
+            <article class="agenda-item">
+              <p class="agenda-time">LLM 02</p>
+              <div class="agenda-content">
+                <h3>Token</h3>
+                <p>模型不直接读取中文、英文或代码，而是先把文本切成 token，再把 token ID 送入模型。</p>
+              </div>
+            </article>
+
+            <article class="agenda-item">
+              <p class="agenda-time">LLM 03</p>
+              <div class="agenda-content">
+                <h3>Embedding</h3>
+                <p>Token ID 只是编号，模型还需要把它查成一串向量，才能在数学空间里计算相似、关系和上下文。</p>
+              </div>
+            </article>
+
+            <article class="agenda-item">
+              <p class="agenda-time">LLM 04</p>
+              <div class="agenda-content">
+                <h3>Attention</h3>
+                <p>Attention 让每个 token 在生成表示时，按权重查看前面的 token，从而把上下文关系带进当前表示。</p>
+              </div>
+            </article>
+
+            <article class="agenda-item">
+              <p class="agenda-time">LLM 05</p>
+              <div class="agenda-content">
+                <h3>Transformer</h3>
+                <p>Transformer 把 Embedding、Attention、FFN、残差连接和 LayerNorm 堆叠起来，形成大模型的主体结构。</p>
+              </div>
+            </article>
+
+            <article class="agenda-item">
+              <p class="agenda-time">LLM 06</p>
+              <div class="agenda-content">
+                <h3>训练</h3>
+                <p>训练就是不断预测、计算误差、反向传播、更新参数，让模型逐渐降低 Loss。</p>
+              </div>
+            </article>
+
+            <article class="agenda-item">
+              <p class="agenda-time">LLM 07</p>
+              <div class="agenda-content">
+                <h3>推理</h3>
+                <p>推理阶段不更新参数，而是把输入送进模型，逐 token 生成输出，并用 KV Cache 避免重复计算。</p>
+              </div>
+            </article>
+
+            <article class="agenda-item">
+              <p class="agenda-time">LLM 08</p>
+              <div class="agenda-content">
+                <h3>上下文窗口</h3>
+                <p>上下文窗口决定模型一次能看到多少 token；窗口越长，位置编码、Attention 计算和 KV Cache 压力越大。</p>
+              </div>
+            </article>
+
+            <article class="agenda-item">
+              <p class="agenda-time">LLM 09</p>
+              <div class="agenda-content">
+                <h3>Scaling Law</h3>
+                <p>Scaling Law 描述模型规模、数据规模、计算量和 Loss 之间的经验关系，解释了为什么更大模型通常更强。</p>
+              </div>
+            </article>
+
+            <article class="agenda-item">
+              <p class="agenda-time">LLM 10</p>
+              <div class="agenda-content">
+                <h3>LLM 到 Agent</h3>
+                <p>LLM 本身只生成 token；接上工具定义、执行函数和循环后，才变成能作用于外部世界的 Agent。</p>
+              </div>
+            </article>
+
+        </div>
+      </section>
+
+      <section class="section-block" id="lessons">
+        <div class="section-head">
+          <p class="eyebrow">Lesson Pack</p>
+          <h2>10 页 LLM 讲义</h2>
+          <p>统一按“场景 → 类比 → 关键代码 → 演示观察 → 误区”的节奏组织。</p>
+        </div>
+        <div class="lesson-grid">
+
+            <article class="lesson-card">
+              <p class="lesson-index">LLM 01 · 第一步：模型到底在做什么</p>
+              <h3>一切从“猜下一个词”开始</h3>
+              <p>大模型不是一次性写完整答案，而是在每一步预测下一个 token，连续很多步后形成完整回复。</p>
+              <div class="lesson-meta">
+                <span>6 分钟</span>
+                <span>78 行代码</span>
+                <span>Next Token Prediction</span>
+              </div>
+              <p class="lesson-kicker">要点：先把大模型从“会聊天的黑盒”降维成“会连续预测 token 的系统”。</p>
+              <div class="lesson-tag-row"><span class="tag">Next Token</span><span class="tag">Probability</span><span class="tag">Temperature</span></div>
+              <a class="lesson-link" href="llm-01-next-token.html">查看教学页</a>
+            </article>
+
+            <article class="lesson-card">
+              <p class="lesson-index">LLM 02 · 第二步：先把文字切开</p>
+              <h3>Token：大模型眼中的“字”长什么样</h3>
+              <p>模型不直接读取中文、英文或代码，而是先把文本切成 token，再把 token ID 送入模型。</p>
+              <div class="lesson-meta">
+                <span>6 分钟</span>
+                <span>162 行代码</span>
+                <span>Tokenization + BPE</span>
+              </div>
+              <p class="lesson-kicker">要点：先让大家亲眼看到：同一段文字进入模型前，已经被改写成一串 token ID。</p>
+              <div class="lesson-tag-row"><span class="tag">Token</span><span class="tag">BPE</span><span class="tag">Tokenizer</span></div>
+              <a class="lesson-link" href="llm-02-token.html">查看教学页</a>
+            </article>
+
+            <article class="lesson-card">
+              <p class="lesson-index">LLM 03 · 第三步：给 token 一个坐标</p>
+              <h3>向量与 Embedding：把文字变成数学</h3>
+              <p>Token ID 只是编号，模型还需要把它查成一串向量，才能在数学空间里计算相似、关系和上下文。</p>
+              <div class="lesson-meta">
+                <span>6 分钟</span>
+                <span>105 行代码</span>
+                <span>Embedding Vector</span>
+              </div>
+              <p class="lesson-kicker">要点：用“身份证坐标”解释 Embedding，再用相似度输出验证它确实能表达关系。</p>
+              <div class="lesson-tag-row"><span class="tag">Embedding</span><span class="tag">Vector</span><span class="tag">Similarity</span></div>
+              <a class="lesson-link" href="llm-03-embedding.html">查看教学页</a>
+            </article>
+
+            <article class="lesson-card">
+              <p class="lesson-index">LLM 04 · 第四步：知道该看哪里</p>
+              <h3>Attention：大模型的“阅读重点”机制</h3>
+              <p>Attention 让每个 token 在生成表示时，按权重查看前面的 token，从而把上下文关系带进当前表示。</p>
+              <div class="lesson-meta">
+                <span>7 分钟</span>
+                <span>167 行代码</span>
+                <span>Query + Key + Value</span>
+              </div>
+              <p class="lesson-kicker">要点：用矩阵和热力图把“模型在看哪里”展示出来，比只讲公式更容易理解。</p>
+              <div class="lesson-tag-row"><span class="tag">Attention</span><span class="tag">QKV</span><span class="tag">Causal Mask</span></div>
+              <a class="lesson-link" href="llm-04-attention.html">查看教学页</a>
+            </article>
+
+            <article class="lesson-card">
+              <p class="lesson-index">LLM 05 · 第五步：把模块拼起来</p>
+              <h3>Transformer 全景：积木怎么搭成大厦</h3>
+              <p>Transformer 把 Embedding、Attention、FFN、残差连接和 LayerNorm 堆叠起来，形成大模型的主体结构。</p>
+              <div class="lesson-meta">
+                <span>7 分钟</span>
+                <span>198 行代码</span>
+                <span>Attention + FFN + Residual</span>
+              </div>
+              <p class="lesson-kicker">要点：把 Transformer 讲成“数据在一栋楼里逐层加工”，比直接堆术语更直观。</p>
+              <div class="lesson-tag-row"><span class="tag">Transformer</span><span class="tag">FFN</span><span class="tag">Residual</span></div>
+              <a class="lesson-link" href="llm-05-transformer.html">查看教学页</a>
+            </article>
+
+            <article class="lesson-card">
+              <p class="lesson-index">LLM 06 · 第六步：从猜错到猜准</p>
+              <h3>训练：参数是怎么“学”出来的</h3>
+              <p>训练就是不断预测、计算误差、反向传播、更新参数，让模型逐渐降低 Loss。</p>
+              <div class="lesson-meta">
+                <span>7 分钟</span>
+                <span>277 行代码</span>
+                <span>Loss + Gradient Descent</span>
+              </div>
+              <p class="lesson-kicker">要点：用 Loss 曲线把“学习”讲成一个可以观察的工程过程。</p>
+              <div class="lesson-tag-row"><span class="tag">Training</span><span class="tag">Loss</span><span class="tag">Gradient</span></div>
+              <a class="lesson-link" href="llm-06-training.html">查看教学页</a>
+            </article>
+
+            <article class="lesson-card">
+              <p class="lesson-index">LLM 07 · 第七步：回答是怎么生成的</p>
+              <h3>推理：按下回车后的这一秒</h3>
+              <p>推理阶段不更新参数，而是把输入送进模型，逐 token 生成输出，并用 KV Cache 避免重复计算。</p>
+              <div class="lesson-meta">
+                <span>6 分钟</span>
+                <span>158 行代码</span>
+                <span>Prefill + Decode + KV Cache</span>
+              </div>
+              <p class="lesson-kicker">要点：把推理讲成 Prefill 和 Decode 两段，很多性能问题会立刻变清楚。</p>
+              <div class="lesson-tag-row"><span class="tag">Inference</span><span class="tag">KV Cache</span><span class="tag">Decode</span></div>
+              <a class="lesson-link" href="llm-07-inference.html">查看教学页</a>
+            </article>
+
+            <article class="lesson-card">
+              <p class="lesson-index">LLM 08 · 第八步：记忆边界</p>
+              <h3>上下文窗口：模型的“工作记忆”有多大</h3>
+              <p>上下文窗口决定模型一次能看到多少 token；窗口越长，位置编码、Attention 计算和 KV Cache 压力越大。</p>
+              <div class="lesson-meta">
+                <span>6 分钟</span>
+                <span>256 行代码</span>
+                <span>Context Window</span>
+              </div>
+              <p class="lesson-kicker">要点：把“模型会忘”讲成上下文窗口和显存成本，而不是拟人化解释。</p>
+              <div class="lesson-tag-row"><span class="tag">Context</span><span class="tag">Position</span><span class="tag">KV Cache</span></div>
+              <a class="lesson-link" href="llm-08-context-window.html">查看教学页</a>
+            </article>
+
+            <article class="lesson-card">
+              <p class="lesson-index">LLM 09 · 第九步：规模为什么重要</p>
+              <h3>Scaling Law：为什么“大力出奇迹”有效</h3>
+              <p>Scaling Law 描述模型规模、数据规模、计算量和 Loss 之间的经验关系，解释了为什么更大模型通常更强。</p>
+              <div class="lesson-meta">
+                <span>6 分钟</span>
+                <span>323 行代码</span>
+                <span>Scale + Loss</span>
+              </div>
+              <p class="lesson-kicker">要点：用小实验解释趋势，用边界提醒大家不要把规模神化。</p>
+              <div class="lesson-tag-row"><span class="tag">Scaling Law</span><span class="tag">Model Size</span><span class="tag">Loss</span></div>
+              <a class="lesson-link" href="llm-09-scaling-law.html">查看教学页</a>
+            </article>
+
+            <article class="lesson-card">
+              <p class="lesson-index">LLM 10 · 第十步：接上工具和循环</p>
+              <h3>从大模型到 Agent：下一个词预测如何长出手脚</h3>
+              <p>LLM 本身只生成 token；接上工具定义、执行函数和循环后，才变成能作用于外部世界的 Agent。</p>
+              <div class="lesson-meta">
+                <span>7 分钟</span>
+                <span>223 行代码</span>
+                <span>LLM + Tools + Loop</span>
+              </div>
+              <p class="lesson-kicker">要点：用 50 行最小 Agent 把 LLM 系列自然接到 Agent 系列。</p>
+              <div class="lesson-tag-row"><span class="tag">Agent</span><span class="tag">Tools</span><span class="tag">Loop</span></div>
+              <a class="lesson-link" href="llm-10-agent.html">查看教学页</a>
+            </article>
+
+        </div>
+      </section>
+
+      <section class="section-block" id="bonus">
+        <div class="section-head">
+          <p class="eyebrow">Bonus</p>
+          <h2>番外目录</h2>
+          <p>番外用于延伸阅读，不进入 10 页主线：多模态、GPU、Token 计费、思考模式、MoE 与算子。</p>
+        </div>
+        <div class="lesson-grid">
+
+            <article class="lesson-card">
+              <p class="lesson-index">大模型番外 · 11</p>
+              <h3>多模态——大模型是怎么”看懂”图片的</h3>
+              <p>「从零开始理解大模型」番外篇 —— 正篇十篇讲的是纯文本大模型。这篇讲多模态：当大模型不只处理文字，还能看图、听声音的时候，架构上到底变了什么？</p>
+              <a class="lesson-link" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/11-multimodal/llm-11-multimodal.md">读番外原文</a>
+            </article>
+
+            <article class="lesson-card">
+              <p class="lesson-index">大模型番外 · 12</p>
+              <h3>为什么大模型离不开 GPU</h3>
+              <p>「从零开始理解大模型」番外篇 —— 正篇十篇讲的是大模型的原理。这篇回答一个很多人好奇的问题：为什么训练和推理都要用 GPU？CPU 不行吗？</p>
+              <a class="lesson-link" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/12-gpu/llm-12-gpu.md">读番外原文</a>
+            </article>
+
+            <article class="lesson-card">
+              <p class="lesson-index">大模型番外 · 13</p>
+              <h3>为什么用 Token 计费？为什么输出比输入贵？</h3>
+              <p>「从零开始理解大模型」番外篇 —— 正篇十篇讲原理，番外篇回答那些&quot;懂了原理之后自然会好奇&quot;的问题。</p>
+              <a class="lesson-link" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/13-token-pricing/llm-13-token-pricing.md">读番外原文</a>
+            </article>
+
+            <article class="lesson-card">
+              <p class="lesson-index">大模型番外 · 14</p>
+              <h3>思考模式和非思考模式到底有什么区别？</h3>
+              <p>「从零开始理解大模型」番外篇 —— 正篇十篇讲原理，番外篇回答那些&quot;懂了原理之后自然会好奇&quot;的问题。</p>
+              <a class="lesson-link" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/14-thinking-mode/llm-14-thinking-mode.md">读番外原文</a>
+            </article>
+
+            <article class="lesson-card">
+              <p class="lesson-index">大模型番外 · 15</p>
+              <h3>DeepSeek V4 Pro 总参数 1.6T，激活参数 49B——这到底是什么意思？</h3>
+              <p>「从零开始理解大模型」番外篇 —— 正篇十篇讲原理，番外篇回答那些&quot;懂了原理之后自然会好奇&quot;的问题。</p>
+              <a class="lesson-link" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/15-moe/llm-15-moe.md">读番外原文</a>
+            </article>
+
+            <article class="lesson-card">
+              <p class="lesson-index">大模型番外 · 16</p>
+              <h3>什么是算子？大模型里的“最小施工单位”</h3>
+              <p>「从零开始理解大模型」番外篇 —— 正篇十篇讲原理，番外篇回答那些&quot;懂了原理之后自然会好奇&quot;的问题。</p>
+              <a class="lesson-link" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/16-operators/llm-16-operators.md">读番外原文</a>
+            </article>
+
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>本讲义仅保留关键代码、演示与延伸线索；收束页、番外与完整原文请见下方入口。</p>
+      <div class="footer-links">
+        <a href="llm.html">LLM 讲义</a>
+        <a href="summary.html">收束与延伸</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent">GitHub 仓库</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent/blob/book/agent/README_CN.md">系列导读</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/README.md">大模型导读</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent/blob/book/agent/build_site.py">站点生成器</a>
+      </div>
+    </footer>
+
+  </div>
+</body>
+</html>

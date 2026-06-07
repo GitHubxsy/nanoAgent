@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LLM 03. 向量与 Embedding：把文字变成数学｜从零开始理解大模型</title>
+  <meta name="description" content="Token ID 只是编号，模型还需要把它查成一串向量，才能在数学空间里计算相似、关系和上下文。">
+  <meta name="robots" content="index,follow">
+  <meta name="theme-color" content="#1f2430">
+  <link rel="canonical" href="https://githubxsy.github.io/nanoAgent/llm-03-embedding.html">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="从零开始理解agent">
+  <meta property="og:title" content="LLM 03. 向量与 Embedding：把文字变成数学｜从零开始理解大模型">
+  <meta property="og:description" content="Token ID 只是编号，模型还需要把它查成一串向量，才能在数学空间里计算相似、关系和上下文。">
+  <meta property="og:url" content="https://githubxsy.github.io/nanoAgent/llm-03-embedding.html">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="LLM 03. 向量与 Embedding：把文字变成数学｜从零开始理解大模型">
+  <meta name="twitter:description" content="Token ID 只是编号，模型还需要把它查成一串向量，才能在数学空间里计算相似、关系和上下文。">
+  <link rel="stylesheet" href="assets/style.css">
+  <script defer src="assets/site.js"></script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"LLM 03. 向量与 Embedding：把文字变成数学","description":"Token ID 只是编号，模型还需要把它查成一串向量，才能在数学空间里计算相似、关系和上下文。","dateModified":"2026-06-07","inLanguage":"zh-CN","author":{"@type":"Organization","name":"GitHubxsy","url":"https://github.com/GitHubxsy/nanoAgent"},"publisher":{"@type":"Organization","name":"GitHubxsy","url":"https://github.com/GitHubxsy/nanoAgent"},"url":"https://githubxsy.github.io/nanoAgent/llm-03-embedding.html","keywords":["Embedding","Vector","Similarity"],"isPartOf":{"@type":"CreativeWorkSeries","name":"从零开始理解大模型","url":"https://githubxsy.github.io/nanoAgent/llm.html"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://githubxsy.github.io/nanoAgent/"},{"@type":"ListItem","position":2,"name":"LLM 讲义","item":"https://githubxsy.github.io/nanoAgent/llm.html"},{"@type":"ListItem","position":3,"name":"第 03 讲","item":"https://githubxsy.github.io/nanoAgent/llm-03-embedding.html"}]}</script>
+</head>
+<body class="article-body">
+  <a class="skip-link" href="#main-content">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span class="reading-progress-bar"></span></div>
+  <div class="site-shell">
+    <header class="site-header">
+      <a class="brand" href="llm.html">
+        <span class="brand-mark">LLM</span>
+        <span class="brand-text">从零开始理解大模型</span>
+      </a>
+      <nav class="top-nav">
+        <a href="llm.html">LLM 目录</a>
+        <a href="index.html">Agent 讲义</a>
+        <a href="summary.html">总结与延伸</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent">GitHub</a>
+      </nav>
+    </header>
+
+    <main class="article-layout" id="main-content">
+      <aside class="article-sidebar">
+        <div class="sidebar-card">
+          <p class="eyebrow">LLM 03 · 第三步：给 token 一个坐标</p>
+          <h2 class="lesson-title">Embedding</h2>
+          <p>Token ID 只是编号，模型还需要把它查成一串向量，才能在数学空间里计算相似、关系和上下文。</p>
+          <div class="chip-row">
+            <span class="chip">6 分钟</span>
+            <span class="chip">105 行代码</span>
+            <span class="chip">Embedding Vector</span>
+          </div>
+        </div>
+
+        <div class="sidebar-card">
+          <h2>LLM 导航</h2>
+          <div class="chapter-rail">
+            <a class="chapter-rail-link" href="llm-01-next-token.html">
+              <span class="course-step">LLM 01</span>
+              <strong>下一个词预测</strong>
+              <small>Next Token Prediction</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-02-token.html">
+              <span class="course-step">LLM 02</span>
+              <strong>Token</strong>
+              <small>Tokenization + BPE</small>
+            </a>
+
+            <a class="chapter-rail-link is-current" href="llm-03-embedding.html">
+              <span class="course-step">LLM 03</span>
+              <strong>Embedding</strong>
+              <small>Embedding Vector</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-04-attention.html">
+              <span class="course-step">LLM 04</span>
+              <strong>Attention</strong>
+              <small>Query + Key + Value</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-05-transformer.html">
+              <span class="course-step">LLM 05</span>
+              <strong>Transformer</strong>
+              <small>Attention + FFN + Residual</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-06-training.html">
+              <span class="course-step">LLM 06</span>
+              <strong>训练</strong>
+              <small>Loss + Gradient Descent</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-07-inference.html">
+              <span class="course-step">LLM 07</span>
+              <strong>推理</strong>
+              <small>Prefill + Decode + KV Cache</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-08-context-window.html">
+              <span class="course-step">LLM 08</span>
+              <strong>上下文窗口</strong>
+              <small>Context Window</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-09-scaling-law.html">
+              <span class="course-step">LLM 09</span>
+              <strong>Scaling Law</strong>
+              <small>Scale + Loss</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-10-agent.html">
+              <span class="course-step">LLM 10</span>
+              <strong>LLM 到 Agent</strong>
+              <small>LLM + Tools + Loop</small>
+            </a>
+            </div>
+        </div>
+
+        <div class="sidebar-card">
+          <h2>页面目录</h2>
+          <nav class="toc">
+            <a class="toc-link" href="#scenario">为什么需要这一讲</a><a class="toc-link" href="#mental">先建立一个直觉</a><a class="toc-link" href="#code">看关键代码</a><a class="toc-link" href="#demo">运行观察</a><a class="toc-link" href="#practice">自己试一轮</a><a class="toc-link" href="#goals">这一讲看懂什么</a><a class="toc-link" href="#talk">讲解要点</a><a class="toc-link" href="#pitfalls">容易误解</a><a class="toc-link" href="#extend">继续阅读</a>
+          </nav>
+        </div>
+      </aside>
+
+      <article class="article-main">
+        <section class="article-hero">
+          <div class="breadcrumbs">
+            <a href="index.html">首页</a>
+            <span>/</span>
+            <a href="llm.html">LLM 讲义</a>
+            <span>/</span>
+            <span>第 03 页</span>
+          </div>
+          <p class="eyebrow">从零开始理解大模型</p>
+          <h1>03. 向量与 Embedding：把文字变成数学</h1>
+          <p class="lead">Token ID 只是编号，模型还需要把它查成一串向量，才能在数学空间里计算相似、关系和上下文。</p>
+          <div class="tag-row"><span class="tag">Embedding</span><span class="tag">Vector</span><span class="tag">Similarity</span></div>
+          <div class="hero-actions">
+            <a class="primary-btn" href="#scenario">从场景开始</a>
+            <a class="secondary-btn" href="#demo">直接看演示</a>
+          </div>
+        </section>
+
+        <section class="lesson-section" id="scenario">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Scenario</p>
+            <h2>为什么需要这一讲</h2>
+          </div>
+          <p class="scenario-text">模型看到 <code class="inline">Paris</code> 不是看到一个城市名字，而是看到一串向量。向量之间的距离和方向，承载了“相似”“相关”“语义靠近”等信息。</p>
+        </section>
+
+        <section class="lesson-section" id="mental">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Mental Model</p>
+            <h2>先建立一个直觉</h2>
+          </div>
+          <p class="scenario-text">Embedding 像给每个 token 发一张数学身份证：不是写着姓名，而是写着一串特征坐标。</p>
+        </section>
+
+        <section class="lesson-section" id="code">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Code First</p>
+            <h2>看关键代码</h2>
+            <p>这里只保留最能说明机制的片段。完整代码可以在页面底部继续打开。</p>
+          </div>
+          <div class="code-group">
+
+            <article class="code-card">
+              <div class="code-card-head">
+                <div>
+                  <p class="lesson-index">Embedding 表</p>
+                  <h3>每个 token ID 对应 Embedding 表里的一行，这一行就是它进入模型后的向量。</h3>
+                </div>
+                <a class="source-link" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/03-embedding/embedding.py#L23-L44">看 GitHub 行号</a>
+              </div>
+              <pre class="code-block"><code class="language-python">  23 # ==================== 取出 Embedding 表 ====================
+  24
+  25 embedding_table = model.transformer.wte.weight.detach()
+  26 print(f&quot;\nEmbedding 表的形状: {embedding_table.shape}&quot;)
+  27 print(f&quot;  行数（词表大小）: {embedding_table.shape[0]}&quot;)
+  28 print(f&quot;  列数（向量维度）: {embedding_table.shape[1]}&quot;)
+  29 print(f&quot;  总参数量: {embedding_table.shape[0] * embedding_table.shape[1]:,}&quot;)
+  30
+  31
+  32 def get_vector(word):
+  33     &quot;&quot;&quot;获取一个词的 Embedding 向量，自动处理带/不带空格的变体&quot;&quot;&quot;
+  34     for variant in [word, &quot; &quot; + word, word.lower(), &quot; &quot; + word.lower(),
+  35                     word.capitalize(), &quot; &quot; + word.capitalize()]:
+  36         ids = tokenizer.encode(variant)
+  37         if len(ids) == 1:
+  38             return embedding_table[ids[0]], ids[0], variant.strip()
+  39     ids = tokenizer.encode(word)
+  40     return embedding_table[ids[0]], ids[0], tokenizer.decode([ids[0]]).strip()
+  41
+  42
+  43 def cosine_similarity(v1, v2):
+  44     return torch.dot(v1, v2) / (v1.norm() * v2.norm())</code></pre>
+            </article>
+
+            <article class="code-card">
+              <div class="code-card-head">
+                <div>
+                  <p class="lesson-index">用余弦相似度比较语义距离</p>
+                  <h3>向量之间可以算距离，距离越近，模型越容易把它们看成相关。</h3>
+                </div>
+                <a class="source-link" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/03-embedding/embedding.py#L67-L93">看 GitHub 行号</a>
+              </div>
+              <pre class="code-block"><code class="language-python">  67 # ==================== 相似度矩阵 ====================
+  68
+  69 print(f&quot;\n\n向量相似度（余弦相似度）：&quot;)
+  70 print(&quot;=&quot; * 60)
+  71
+  72 computed_pairs = set()
+  73 results = []
+  74
+  75 for w1 in words:
+  76     for w2 in words:
+  77         if w1 &gt;= w2:
+  78             continue
+  79         key = tuple(sorted([w1, w2]))
+  80         if key in computed_pairs:
+  81             continue
+  82         computed_pairs.add(key)
+  83
+  84         if w1 in vectors and w2 in vectors:
+  85             sim = cosine_similarity(vectors[w1], vectors[w2]).item()
+  86             results.append((w1, w2, sim))
+  87
+  88 # 按相似度降序排列
+  89 results.sort(key=lambda x: -x[2])
+  90
+  91 for w1, w2, sim in results:
+  92     bar = &quot;█&quot; * int(max(0, sim) * 30)
+  93     print(f&quot;  &#x27;{w1}&#x27; vs &#x27;{w2}&#x27;: {sim:&gt;7.3f}  {bar}&quot;)</code></pre>
+            </article>
+
+          </div>
+        </section>
+
+        <section class="lesson-section" id="demo">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Live Demo</p>
+            <h2>运行观察</h2>
+            <p>从向量形状、相似度和一词多义三个角度理解 Embedding。</p>
+          </div>
+          <div class="demo-box">
+            <p class="lesson-index">演示命令</p>
+            <pre class="demo-command"><code>python3 llm/03-embedding/embedding.py &quot;France&quot; &quot;Paris&quot; &quot;Germany&quot; &quot;Berlin&quot; &quot;cat&quot; &quot;dog&quot;
+python3 llm/03-embedding/context_embedding.py</code></pre>
+            <ul class="lesson-list"><li><code class="inline">embedding.py</code> 会打印 Embedding 表形状：词表大小 × 向量维度。</li><li>语义相关的词通常会有更高相似度，例如国家和首都、动物和动物。</li><li><code class="inline">context_embedding.py</code> 会展示同一个 <code class="inline">bank</code> 在不同上下文中经过 Transformer 后向量发生变化。</li><li>固定 Embedding 是起点，真正的语境理解发生在后续层里。</li></ul>
+          </div>
+        </section>
+
+        <section class="lesson-section" id="practice">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Try It</p>
+            <h2>自己试一轮</h2>
+            <p>用“身份证坐标”解释 Embedding，再用相似度输出验证它确实能表达关系。</p>
+          </div>
+          <ol class="lesson-steps"><li>换几组词，例如 <code class="inline">doctor</code>、<code class="inline">hospital</code>、<code class="inline">music</code>，观察相似度。</li><li>运行 <code class="inline">context_embedding.py</code>，重点看 <code class="inline">bank</code> 的 Embedding 层和最后一层差异。</li><li>打开代码中的 <code class="inline">embedding_table.shape</code>，对应理解“词表大小 × 向量维度”。</li></ol>
+        </section>
+
+        <section class="lesson-section" id="goals">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Takeaway</p>
+            <h2>这一讲看懂什么</h2>
+          </div>
+          <ul class="lesson-list"><li>Embedding 把 token ID 变成可计算的向量。</li><li>向量相似度可以表达粗粒度语义关系。</li><li>同一个 token 的最终表示会被上下文改写。</li></ul>
+        </section>
+
+        <section class="lesson-section" id="talk">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Key Points</p>
+            <h2>讲解要点</h2>
+          </div>
+          <ul class="lesson-list"><li>模型不能直接算文字，只能算数字向量。</li><li>Embedding 表本质上是一张大查找表。</li><li>上下文感知不是 Embedding 单独完成的，而是 Transformer 层逐步加工的结果。</li></ul>
+        </section>
+
+        <section class="lesson-section" id="pitfalls">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Pitfalls</p>
+            <h2>容易误解</h2>
+          </div>
+          <ul class="lesson-list"><li>不要把向量维度理解成可人工命名的属性列，它们通常不是人类可读字段。</li><li>向量相似不等于事实正确，只表示表示空间里的接近。</li><li>静态 Embedding 无法单独解决一词多义。</li></ul>
+        </section>
+
+        <section class="lesson-section" id="extend">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Extend</p>
+            <h2>继续阅读</h2>
+            <p>教学页只保留现场讲解需要的内容，完整文章与代码仍然保留在仓库中。</p>
+          </div>
+          <div class="deep-links">
+            <a class="secondary-btn" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/03-embedding/llm-03-embedding.md">读完整原文</a>
+            <a class="secondary-btn" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/03-embedding/embedding.py">看完整代码</a>
+            <a class="secondary-btn" href="llm.html">回到 LLM 目录</a>
+          </div>
+        </section>
+
+        <nav class="pager">
+          <a class="pager-link" href="llm-02-token.html"><span>上一页</span><strong>02. Token</strong></a>
+          <a class="pager-link" href="llm-04-attention.html"><span>下一页</span><strong>04. Attention</strong></a>
+        </nav>
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <p>本讲义仅保留关键代码、演示与延伸线索；收束页、番外与完整原文请见下方入口。</p>
+      <div class="footer-links">
+        <a href="llm.html">LLM 讲义</a>
+        <a href="summary.html">收束与延伸</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent">GitHub 仓库</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent/blob/book/agent/README_CN.md">系列导读</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/README.md">大模型导读</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent/blob/book/agent/build_site.py">站点生成器</a>
+      </div>
+    </footer>
+
+  </div>
+</body>
+</html>

@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LLM 05. Transformer 全景：积木怎么搭成大厦｜从零开始理解大模型</title>
+  <meta name="description" content="Transformer 把 Embedding、Attention、FFN、残差连接和 LayerNorm 堆叠起来，形成大模型的主体结构。">
+  <meta name="robots" content="index,follow">
+  <meta name="theme-color" content="#1f2430">
+  <link rel="canonical" href="https://githubxsy.github.io/nanoAgent/llm-05-transformer.html">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="从零开始理解agent">
+  <meta property="og:title" content="LLM 05. Transformer 全景：积木怎么搭成大厦｜从零开始理解大模型">
+  <meta property="og:description" content="Transformer 把 Embedding、Attention、FFN、残差连接和 LayerNorm 堆叠起来，形成大模型的主体结构。">
+  <meta property="og:url" content="https://githubxsy.github.io/nanoAgent/llm-05-transformer.html">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="LLM 05. Transformer 全景：积木怎么搭成大厦｜从零开始理解大模型">
+  <meta name="twitter:description" content="Transformer 把 Embedding、Attention、FFN、残差连接和 LayerNorm 堆叠起来，形成大模型的主体结构。">
+  <link rel="stylesheet" href="assets/style.css">
+  <script defer src="assets/site.js"></script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"LLM 05. Transformer 全景：积木怎么搭成大厦","description":"Transformer 把 Embedding、Attention、FFN、残差连接和 LayerNorm 堆叠起来，形成大模型的主体结构。","dateModified":"2026-06-07","inLanguage":"zh-CN","author":{"@type":"Organization","name":"GitHubxsy","url":"https://github.com/GitHubxsy/nanoAgent"},"publisher":{"@type":"Organization","name":"GitHubxsy","url":"https://github.com/GitHubxsy/nanoAgent"},"url":"https://githubxsy.github.io/nanoAgent/llm-05-transformer.html","keywords":["Transformer","FFN","Residual"],"isPartOf":{"@type":"CreativeWorkSeries","name":"从零开始理解大模型","url":"https://githubxsy.github.io/nanoAgent/llm.html"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://githubxsy.github.io/nanoAgent/"},{"@type":"ListItem","position":2,"name":"LLM 讲义","item":"https://githubxsy.github.io/nanoAgent/llm.html"},{"@type":"ListItem","position":3,"name":"第 05 讲","item":"https://githubxsy.github.io/nanoAgent/llm-05-transformer.html"}]}</script>
+</head>
+<body class="article-body">
+  <a class="skip-link" href="#main-content">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span class="reading-progress-bar"></span></div>
+  <div class="site-shell">
+    <header class="site-header">
+      <a class="brand" href="llm.html">
+        <span class="brand-mark">LLM</span>
+        <span class="brand-text">从零开始理解大模型</span>
+      </a>
+      <nav class="top-nav">
+        <a href="llm.html">LLM 目录</a>
+        <a href="index.html">Agent 讲义</a>
+        <a href="summary.html">总结与延伸</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent">GitHub</a>
+      </nav>
+    </header>
+
+    <main class="article-layout" id="main-content">
+      <aside class="article-sidebar">
+        <div class="sidebar-card">
+          <p class="eyebrow">LLM 05 · 第五步：把模块拼起来</p>
+          <h2 class="lesson-title">Transformer</h2>
+          <p>Transformer 把 Embedding、Attention、FFN、残差连接和 LayerNorm 堆叠起来，形成大模型的主体结构。</p>
+          <div class="chip-row">
+            <span class="chip">7 分钟</span>
+            <span class="chip">198 行代码</span>
+            <span class="chip">Attention + FFN + Residual</span>
+          </div>
+        </div>
+
+        <div class="sidebar-card">
+          <h2>LLM 导航</h2>
+          <div class="chapter-rail">
+            <a class="chapter-rail-link" href="llm-01-next-token.html">
+              <span class="course-step">LLM 01</span>
+              <strong>下一个词预测</strong>
+              <small>Next Token Prediction</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-02-token.html">
+              <span class="course-step">LLM 02</span>
+              <strong>Token</strong>
+              <small>Tokenization + BPE</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-03-embedding.html">
+              <span class="course-step">LLM 03</span>
+              <strong>Embedding</strong>
+              <small>Embedding Vector</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-04-attention.html">
+              <span class="course-step">LLM 04</span>
+              <strong>Attention</strong>
+              <small>Query + Key + Value</small>
+            </a>
+
+            <a class="chapter-rail-link is-current" href="llm-05-transformer.html">
+              <span class="course-step">LLM 05</span>
+              <strong>Transformer</strong>
+              <small>Attention + FFN + Residual</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-06-training.html">
+              <span class="course-step">LLM 06</span>
+              <strong>训练</strong>
+              <small>Loss + Gradient Descent</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-07-inference.html">
+              <span class="course-step">LLM 07</span>
+              <strong>推理</strong>
+              <small>Prefill + Decode + KV Cache</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-08-context-window.html">
+              <span class="course-step">LLM 08</span>
+              <strong>上下文窗口</strong>
+              <small>Context Window</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-09-scaling-law.html">
+              <span class="course-step">LLM 09</span>
+              <strong>Scaling Law</strong>
+              <small>Scale + Loss</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-10-agent.html">
+              <span class="course-step">LLM 10</span>
+              <strong>LLM 到 Agent</strong>
+              <small>LLM + Tools + Loop</small>
+            </a>
+            </div>
+        </div>
+
+        <div class="sidebar-card">
+          <h2>页面目录</h2>
+          <nav class="toc">
+            <a class="toc-link" href="#scenario">为什么需要这一讲</a><a class="toc-link" href="#mental">先建立一个直觉</a><a class="toc-link" href="#code">看关键代码</a><a class="toc-link" href="#demo">运行观察</a><a class="toc-link" href="#practice">自己试一轮</a><a class="toc-link" href="#goals">这一讲看懂什么</a><a class="toc-link" href="#talk">讲解要点</a><a class="toc-link" href="#pitfalls">容易误解</a><a class="toc-link" href="#extend">继续阅读</a>
+          </nav>
+        </div>
+      </aside>
+
+      <article class="article-main">
+        <section class="article-hero">
+          <div class="breadcrumbs">
+            <a href="index.html">首页</a>
+            <span>/</span>
+            <a href="llm.html">LLM 讲义</a>
+            <span>/</span>
+            <span>第 05 页</span>
+          </div>
+          <p class="eyebrow">从零开始理解大模型</p>
+          <h1>05. Transformer 全景：积木怎么搭成大厦</h1>
+          <p class="lead">Transformer 把 Embedding、Attention、FFN、残差连接和 LayerNorm 堆叠起来，形成大模型的主体结构。</p>
+          <div class="tag-row"><span class="tag">Transformer</span><span class="tag">FFN</span><span class="tag">Residual</span></div>
+          <div class="hero-actions">
+            <a class="primary-btn" href="#scenario">从场景开始</a>
+            <a class="secondary-btn" href="#demo">直接看演示</a>
+          </div>
+        </section>
+
+        <section class="lesson-section" id="scenario">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Scenario</p>
+            <h2>为什么需要这一讲</h2>
+          </div>
+          <p class="scenario-text">前面几讲分别看了 token、向量和注意力。现在需要把这些积木放到一张图里，看清一层 Transformer 长什么样，很多层又是如何叠起来的。</p>
+        </section>
+
+        <section class="lesson-section" id="mental">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Mental Model</p>
+            <h2>先建立一个直觉</h2>
+          </div>
+          <p class="scenario-text">一层 Transformer 像一次小组讨论：Attention 先看上下文，FFN 再做局部加工，残差连接负责保留原始信息。</p>
+        </section>
+
+        <section class="lesson-section" id="code">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Code First</p>
+            <h2>看关键代码</h2>
+            <p>这里只保留最能说明机制的片段。完整代码可以在页面底部继续打开。</p>
+          </div>
+          <div class="code-group">
+
+            <article class="code-card">
+              <div class="code-card-head">
+                <div>
+                  <p class="lesson-index">参数分布总览</p>
+                  <h3>先看参数都在哪里，能帮助理解为什么 FFN 和 Attention 是主体。</h3>
+                </div>
+                <a class="source-link" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/05-transformer/transformer_anatomy.py#L24-L57">看 GitHub 行号</a>
+              </div>
+              <pre class="code-block"><code class="language-python">  24 # ==================== 1. 模型总览 ====================
+  25 print(&quot;\n&quot; + &quot;=&quot; * 70)
+  26 print(&quot;GPT-2 模型结构总览&quot;)
+  27 print(&quot;=&quot; * 70)
+  28
+  29 total_params = sum(p.numel() for p in model.parameters())
+  30 print(f&quot;\n总参数量: {total_params:,} ({total_params / 1e6:.1f}M)&quot;)
+  31
+  32 # 按模块统计
+  33 embedding_params = model.transformer.wte.weight.numel() + model.transformer.wpe.weight.numel()
+  34 layer0 = model.transformer.h[0]
+  35 attn_params = sum(p.numel() for n, p in layer0.named_parameters() if &#x27;attn&#x27; in n)
+  36 ffn_params = sum(p.numel() for n, p in layer0.named_parameters() if &#x27;mlp&#x27; in n)
+  37 norm_params = sum(p.numel() for n, p in layer0.named_parameters() if &#x27;ln&#x27; in n)
+  38 final_norm_params = sum(p.numel() for p in model.transformer.ln_f.parameters())
+  39
+  40 categories = [
+  41     (&quot;Token Embedding&quot;, model.transformer.wte.weight.numel()),
+  42     (&quot;Position Embedding&quot;, model.transformer.wpe.weight.numel()),
+  43     (&quot;Attention (每层)&quot;, attn_params),
+  44     (&quot;FFN (每层)&quot;, ffn_params),
+  45     (&quot;LayerNorm (每层)&quot;, norm_params),
+  46     (&quot;Attention (12层)&quot;, attn_params * 12),
+  47     (&quot;FFN (12层)&quot;, ffn_params * 12),
+  48     (&quot;最终 LayerNorm&quot;, final_norm_params),
+  49 ]
+  50
+  51 print(f&quot;\n  {&#x27;组件&#x27;:&lt;25} {&#x27;参数量&#x27;:&gt;12} {&#x27;占比&#x27;:&gt;8}&quot;)
+  52 print(&quot;  &quot; + &quot;-&quot; * 50)
+  53
+  54 for name, count in categories:
+  55     pct = count / total_params * 100
+  56     bar = &quot;█&quot; * int(pct / 2)
+  57     print(f&quot;  {name:&lt;25} {count:&gt;12,} {pct:&gt;7.1f}% {bar}&quot;)</code></pre>
+            </article>
+
+            <article class="code-card">
+              <div class="code-card-head">
+                <div>
+                  <p class="lesson-index">逐层数据流</p>
+                  <h3>从 Embedding 到 12 层 Transformer，再到 LM Head，这就是一次前向传播的主路径。</h3>
+                </div>
+                <a class="source-link" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/05-transformer/transformer_anatomy.py#L74-L144">看 GitHub 行号</a>
+              </div>
+              <pre class="code-block"><code class="language-python">  74 # ==================== 3. 数据流追踪 ====================
+  75 print(f&quot;\n\n{&#x27;=&#x27; * 70}&quot;)
+  76 print(f&quot;数据流追踪: &#x27;{text}&#x27;&quot;)
+  77 print(&quot;=&quot; * 70)
+  78
+  79 input_ids = tokenizer.encode(text, return_tensors=&quot;pt&quot;)
+  80 tokens = [tokenizer.decode([id]) for id in input_ids[0]]
+  81 print(f&quot;\nTokens: {tokens} (共 {len(tokens)} 个)&quot;)
+  82
+  83 with torch.no_grad():
+  84     # Step 1-3: Embedding
+  85     token_embeds = model.transformer.wte(input_ids)
+  86     positions = torch.arange(input_ids.shape[1]).unsqueeze(0)
+  87     pos_embeds = model.transformer.wpe(positions)
+  88     hidden = token_embeds + pos_embeds
+  89
+  90     print(f&quot;\n  ① Token Embedding:    {input_ids.shape} → {token_embeds.shape}&quot;)
+  91     print(f&quot;  ② Position Embedding: {positions.shape} → {pos_embeds.shape}&quot;)
+  92     print(f&quot;  ③ 相加:               {hidden.shape}&quot;)
+  93
+  94     # 保存原始 Embedding 用于后续对比
+  95     original = hidden.clone()
+  96
+  97     # Step 4-15: 12 层 Transformer
+  98     print(f&quot;\n  逐层变换:&quot;)
+  99     print(f&quot;  {&#x27;层&#x27;:&lt;10} {&#x27;输入范数&#x27;:&gt;8} {&#x27;Attn后&#x27;:&gt;8} {&#x27;FFN后&#x27;:&gt;8} {&#x27;变化&#x27;:&gt;8} &quot;
+ 100           f&quot;{&#x27;vs原始&#x27;:&gt;8}&quot;)
+ 101     print(&quot;  &quot; + &quot;-&quot; * 55)
+ 102
+ 103     for layer_idx in range(12):
+ 104         layer = model.transformer.h[layer_idx]
+ 105         input_norm = hidden.norm(dim=-1).mean().item()
+ 106
+ 107         # Attention block
+ 108         residual = hidden
+ 109         normed = layer.ln_1(hidden)
+ 110         attn_out = layer.attn(normed)[0]
+ 111         hidden = residual + attn_out
+ 112         after_attn = hidden.norm(dim=-1).mean().item()
+ 113
+ 114         # FFN block
+ 115         residual = hidden
+ 116         normed = layer.ln_2(hidden)
+ 117         ffn_out = layer.mlp(normed)
+ 118         hidden = residual + ffn_out
+ 119         output_norm = hidden.norm(dim=-1).mean().item()
+ 120
+ 121         # vs 原始 Embedding
+ 122         cos_sim = torch.nn.functional.cosine_similarity(
+ 123             original.flatten(), hidden.flatten(), dim=0
+ 124         ).item()
+ 125
+ 126         delta = (output_norm - input_norm) / input_norm * 100
+ 127         print(f&quot;  Layer {layer_idx:&gt;2}  {input_norm:&gt;8.1f} {after_attn:&gt;8.1f} &quot;
+ 128               f&quot;{output_norm:&gt;8.1f} {delta:&gt;+7.1f}%  {cos_sim:&gt;7.3f}&quot;)
+ 129
+ 130     # 最终 LayerNorm + LM Head
+ 131     hidden = model.transformer.ln_f(hidden)
+ 132     logits = model.lm_head(hidden)
+ 133
+ 134     print(f&quot;\n  ⑯ 最终 LayerNorm → {hidden.shape}&quot;)
+ 135     print(f&quot;  ⑰ LM Head       → {logits.shape} (768 → 50257)&quot;)
+ 136
+ 137     # 预测
+ 138     probs = torch.softmax(logits[0, -1, :], dim=0)
+ 139     top5_probs, top5_ids = torch.topk(probs, 5)
+ 140
+ 141     print(f&quot;\n  预测 Top 5:&quot;)
+ 142     for i in range(5):
+ 143         tok = tokenizer.decode([top5_ids[i]])
+ 144         print(f&quot;    {i + 1}. &#x27;{tok}&#x27; ({top5_probs[i].item() * 100:.1f}%)&quot;)</code></pre>
+            </article>
+
+          </div>
+        </section>
+
+        <section class="lesson-section" id="demo">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Live Demo</p>
+            <h2>运行观察</h2>
+            <p>拆开 GPT-2，看参数分布、数据形状和逐层变化。</p>
+          </div>
+          <div class="demo-box">
+            <p class="lesson-index">演示命令</p>
+            <pre class="demo-command"><code>python3 llm/05-transformer/transformer_anatomy.py &quot;The capital of France is&quot;</code></pre>
+            <ul class="lesson-list"><li>脚本会先打印 GPT-2 的总参数量和各模块参数占比。</li><li>单层结构会展开 Attention、FFN、LayerNorm 等参数形状。</li><li>数据流追踪会显示 token 从 Embedding 一路经过 12 层 Transformer。</li><li>最后 LM Head 把隐藏向量重新映射回词表概率。</li></ul>
+          </div>
+        </section>
+
+        <section class="lesson-section" id="practice">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Try It</p>
+            <h2>自己试一轮</h2>
+            <p>把 Transformer 讲成“数据在一栋楼里逐层加工”，比直接堆术语更直观。</p>
+          </div>
+          <ol class="lesson-steps"><li>换一句输入，看 token 数变化如何影响数据形状。</li><li>重点观察每层 <code class="inline">Attn后</code>、<code class="inline">FFN后</code> 的数值变化。</li><li>查看权重共享输出，理解输入 Embedding 和输出 LM Head 的关系。</li></ol>
+        </section>
+
+        <section class="lesson-section" id="goals">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Takeaway</p>
+            <h2>这一讲看懂什么</h2>
+          </div>
+          <ul class="lesson-list"><li>Transformer 是大模型的主体骨架。</li><li>Attention 负责看上下文，FFN 负责进一步加工表示。</li><li>残差连接让信息可以穿过很多层而不轻易丢失。</li></ul>
+        </section>
+
+        <section class="lesson-section" id="talk">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Key Points</p>
+            <h2>讲解要点</h2>
+          </div>
+          <ul class="lesson-list"><li>Transformer 不是一个单独操作，而是一组模块的稳定组合。</li><li>层数越多，模型越能逐步加工复杂关系。</li><li>残差和 LayerNorm 是让深层模型稳定训练的重要工程结构。</li></ul>
+        </section>
+
+        <section class="lesson-section" id="pitfalls">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Pitfalls</p>
+            <h2>容易误解</h2>
+          </div>
+          <ul class="lesson-list"><li>不要只记公式，先看清数据形状如何流动。</li><li>FFN 不是可有可无，它承担了大量参数和表示加工。</li><li>模型大不只是层数多，也包括宽度、头数、词表等共同变化。</li></ul>
+        </section>
+
+        <section class="lesson-section" id="extend">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Extend</p>
+            <h2>继续阅读</h2>
+            <p>教学页只保留现场讲解需要的内容，完整文章与代码仍然保留在仓库中。</p>
+          </div>
+          <div class="deep-links">
+            <a class="secondary-btn" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/05-transformer/llm-05-transformer.md">读完整原文</a>
+            <a class="secondary-btn" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/05-transformer/transformer_anatomy.py">看完整代码</a>
+            <a class="secondary-btn" href="llm.html">回到 LLM 目录</a>
+          </div>
+        </section>
+
+        <nav class="pager">
+          <a class="pager-link" href="llm-04-attention.html"><span>上一页</span><strong>04. Attention</strong></a>
+          <a class="pager-link" href="llm-06-training.html"><span>下一页</span><strong>06. 训练</strong></a>
+        </nav>
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <p>本讲义仅保留关键代码、演示与延伸线索；收束页、番外与完整原文请见下方入口。</p>
+      <div class="footer-links">
+        <a href="llm.html">LLM 讲义</a>
+        <a href="summary.html">收束与延伸</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent">GitHub 仓库</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent/blob/book/agent/README_CN.md">系列导读</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/README.md">大模型导读</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent/blob/book/agent/build_site.py">站点生成器</a>
+      </div>
+    </footer>
+
+  </div>
+</body>
+</html>

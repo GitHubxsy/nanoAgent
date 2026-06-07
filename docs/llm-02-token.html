@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LLM 02. Token：大模型眼中的“字”长什么样｜从零开始理解大模型</title>
+  <meta name="description" content="模型不直接读取中文、英文或代码，而是先把文本切成 token，再把 token ID 送入模型。">
+  <meta name="robots" content="index,follow">
+  <meta name="theme-color" content="#1f2430">
+  <link rel="canonical" href="https://githubxsy.github.io/nanoAgent/llm-02-token.html">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="从零开始理解agent">
+  <meta property="og:title" content="LLM 02. Token：大模型眼中的“字”长什么样｜从零开始理解大模型">
+  <meta property="og:description" content="模型不直接读取中文、英文或代码，而是先把文本切成 token，再把 token ID 送入模型。">
+  <meta property="og:url" content="https://githubxsy.github.io/nanoAgent/llm-02-token.html">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="LLM 02. Token：大模型眼中的“字”长什么样｜从零开始理解大模型">
+  <meta name="twitter:description" content="模型不直接读取中文、英文或代码，而是先把文本切成 token，再把 token ID 送入模型。">
+  <link rel="stylesheet" href="assets/style.css">
+  <script defer src="assets/site.js"></script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"LLM 02. Token：大模型眼中的“字”长什么样","description":"模型不直接读取中文、英文或代码，而是先把文本切成 token，再把 token ID 送入模型。","dateModified":"2026-06-07","inLanguage":"zh-CN","author":{"@type":"Organization","name":"GitHubxsy","url":"https://github.com/GitHubxsy/nanoAgent"},"publisher":{"@type":"Organization","name":"GitHubxsy","url":"https://github.com/GitHubxsy/nanoAgent"},"url":"https://githubxsy.github.io/nanoAgent/llm-02-token.html","keywords":["Token","BPE","Tokenizer"],"isPartOf":{"@type":"CreativeWorkSeries","name":"从零开始理解大模型","url":"https://githubxsy.github.io/nanoAgent/llm.html"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://githubxsy.github.io/nanoAgent/"},{"@type":"ListItem","position":2,"name":"LLM 讲义","item":"https://githubxsy.github.io/nanoAgent/llm.html"},{"@type":"ListItem","position":3,"name":"第 02 讲","item":"https://githubxsy.github.io/nanoAgent/llm-02-token.html"}]}</script>
+</head>
+<body class="article-body">
+  <a class="skip-link" href="#main-content">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span class="reading-progress-bar"></span></div>
+  <div class="site-shell">
+    <header class="site-header">
+      <a class="brand" href="llm.html">
+        <span class="brand-mark">LLM</span>
+        <span class="brand-text">从零开始理解大模型</span>
+      </a>
+      <nav class="top-nav">
+        <a href="llm.html">LLM 目录</a>
+        <a href="index.html">Agent 讲义</a>
+        <a href="summary.html">总结与延伸</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent">GitHub</a>
+      </nav>
+    </header>
+
+    <main class="article-layout" id="main-content">
+      <aside class="article-sidebar">
+        <div class="sidebar-card">
+          <p class="eyebrow">LLM 02 · 第二步：先把文字切开</p>
+          <h2 class="lesson-title">Token</h2>
+          <p>模型不直接读取中文、英文或代码，而是先把文本切成 token，再把 token ID 送入模型。</p>
+          <div class="chip-row">
+            <span class="chip">6 分钟</span>
+            <span class="chip">162 行代码</span>
+            <span class="chip">Tokenization + BPE</span>
+          </div>
+        </div>
+
+        <div class="sidebar-card">
+          <h2>LLM 导航</h2>
+          <div class="chapter-rail">
+            <a class="chapter-rail-link" href="llm-01-next-token.html">
+              <span class="course-step">LLM 01</span>
+              <strong>下一个词预测</strong>
+              <small>Next Token Prediction</small>
+            </a>
+
+            <a class="chapter-rail-link is-current" href="llm-02-token.html">
+              <span class="course-step">LLM 02</span>
+              <strong>Token</strong>
+              <small>Tokenization + BPE</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-03-embedding.html">
+              <span class="course-step">LLM 03</span>
+              <strong>Embedding</strong>
+              <small>Embedding Vector</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-04-attention.html">
+              <span class="course-step">LLM 04</span>
+              <strong>Attention</strong>
+              <small>Query + Key + Value</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-05-transformer.html">
+              <span class="course-step">LLM 05</span>
+              <strong>Transformer</strong>
+              <small>Attention + FFN + Residual</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-06-training.html">
+              <span class="course-step">LLM 06</span>
+              <strong>训练</strong>
+              <small>Loss + Gradient Descent</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-07-inference.html">
+              <span class="course-step">LLM 07</span>
+              <strong>推理</strong>
+              <small>Prefill + Decode + KV Cache</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-08-context-window.html">
+              <span class="course-step">LLM 08</span>
+              <strong>上下文窗口</strong>
+              <small>Context Window</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-09-scaling-law.html">
+              <span class="course-step">LLM 09</span>
+              <strong>Scaling Law</strong>
+              <small>Scale + Loss</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-10-agent.html">
+              <span class="course-step">LLM 10</span>
+              <strong>LLM 到 Agent</strong>
+              <small>LLM + Tools + Loop</small>
+            </a>
+            </div>
+        </div>
+
+        <div class="sidebar-card">
+          <h2>页面目录</h2>
+          <nav class="toc">
+            <a class="toc-link" href="#scenario">为什么需要这一讲</a><a class="toc-link" href="#mental">先建立一个直觉</a><a class="toc-link" href="#code">看关键代码</a><a class="toc-link" href="#demo">运行观察</a><a class="toc-link" href="#practice">自己试一轮</a><a class="toc-link" href="#goals">这一讲看懂什么</a><a class="toc-link" href="#talk">讲解要点</a><a class="toc-link" href="#pitfalls">容易误解</a><a class="toc-link" href="#extend">继续阅读</a>
+          </nav>
+        </div>
+      </aside>
+
+      <article class="article-main">
+        <section class="article-hero">
+          <div class="breadcrumbs">
+            <a href="index.html">首页</a>
+            <span>/</span>
+            <a href="llm.html">LLM 讲义</a>
+            <span>/</span>
+            <span>第 02 页</span>
+          </div>
+          <p class="eyebrow">从零开始理解大模型</p>
+          <h1>02. Token：大模型眼中的“字”长什么样</h1>
+          <p class="lead">模型不直接读取中文、英文或代码，而是先把文本切成 token，再把 token ID 送入模型。</p>
+          <div class="tag-row"><span class="tag">Token</span><span class="tag">BPE</span><span class="tag">Tokenizer</span></div>
+          <div class="hero-actions">
+            <a class="primary-btn" href="#scenario">从场景开始</a>
+            <a class="secondary-btn" href="#demo">直接看演示</a>
+          </div>
+        </section>
+
+        <section class="lesson-section" id="scenario">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Scenario</p>
+            <h2>为什么需要这一讲</h2>
+          </div>
+          <p class="scenario-text">同一句话，在人眼里是自然语言；在模型眼里，是一串数字 ID。为什么中文、代码、URL 更容易吃掉上下文？答案往往从分词开始。</p>
+        </section>
+
+        <section class="lesson-section" id="mental">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Mental Model</p>
+            <h2>先建立一个直觉</h2>
+          </div>
+          <p class="scenario-text">Token 像模型的拼图块：常见片段可以是一整块，不常见片段会被拆成更多小块。</p>
+        </section>
+
+        <section class="lesson-section" id="code">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Code First</p>
+            <h2>看关键代码</h2>
+            <p>这里只保留最能说明机制的片段。完整代码可以在页面底部继续打开。</p>
+          </div>
+          <div class="code-group">
+
+            <article class="code-card">
+              <div class="code-card-head">
+                <div>
+                  <p class="lesson-index">统计相邻片段</p>
+                  <h3>BPE 的第一步很朴素：数一数哪些相邻片段最常一起出现。</h3>
+                </div>
+                <a class="source-link" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/02-token/bpe_demo.py#L17-L23">看 GitHub 行号</a>
+              </div>
+              <pre class="code-block"><code class="language-python">  17 def get_pairs(tokens_list):
+  18     &quot;&quot;&quot;统计所有相邻 token 对的出现次数&quot;&quot;&quot;
+  19     pairs = Counter()
+  20     for tokens in tokens_list:
+  21         for i in range(len(tokens) - 1):
+  22             pairs[(tokens[i], tokens[i + 1])] += 1
+  23     return pairs</code></pre>
+            </article>
+
+            <article class="code-card">
+              <div class="code-card-head">
+                <div>
+                  <p class="lesson-index">逐轮合并高频片段</p>
+                  <h3>高频片段被合并成新 token，词表就是这样一点点训练出来的。</h3>
+                </div>
+                <a class="source-link" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/02-token/bpe_demo.py#L43-L87">看 GitHub 行号</a>
+              </div>
+              <pre class="code-block"><code class="language-python">  43 def train_bpe(text, num_merges=10):
+  44     &quot;&quot;&quot;
+  45     训练一个最简 BPE 分词器。
+  46
+  47     参数：
+  48         text: 训练文本
+  49         num_merges: 合并几次（决定最终词表大小）
+  50
+  51     返回：
+  52         vocab: 最终词表
+  53         merge_rules: 合并规则列表（按顺序）
+  54     &quot;&quot;&quot;
+  55     # 把每个词拆成单个字符 + 词尾标记
+  56     words = text.split()
+  57     tokens_list = [list(word) + [&quot;&lt;/w&gt;&quot;] for word in words]
+  58
+  59     # 初始词表
+  60     vocab = set()
+  61     for tokens in tokens_list:
+  62         vocab.update(tokens)
+  63
+  64     print(f&quot;训练文本: &#x27;{text}&#x27;&quot;)
+  65     print(f&quot;词的数量: {len(words)}&quot;)
+  66     print(f&quot;初始词表 ({len(vocab)} 个): {sorted(vocab)}&quot;)
+  67     print(f&quot;\n开始 BPE 合并（共 {num_merges} 轮）：&quot;)
+  68     print(&quot;=&quot; * 65)
+  69
+  70     merge_rules = []
+  71
+  72     for step in range(num_merges):
+  73         pairs = get_pairs(tokens_list)
+  74         if not pairs:
+  75             print(f&quot;\n  轮次 {step + 1}: 没有更多的 pair 可以合并了，提前停止&quot;)
+  76             break
+  77
+  78         best_pair = pairs.most_common(1)[0]
+  79         pair, count = best_pair
+  80         new_token = pair[0] + pair[1]
+  81
+  82         print(f&quot;\n  轮次 {step + 1}: 合并 (&#x27;{pair[0]}&#x27;, &#x27;{pair[1]}&#x27;) → &#x27;{new_token}&#x27;  &quot;
+  83               f&quot;（出现 {count} 次）&quot;)
+  84
+  85         tokens_list = merge_pair(tokens_list, pair, new_token)
+  86         vocab.add(new_token)
+  87         merge_rules.append((pair, new_token))</code></pre>
+            </article>
+
+          </div>
+        </section>
+
+        <section class="lesson-section" id="demo">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Live Demo</p>
+            <h2>运行观察</h2>
+            <p>用分词结果解释：为什么同样长度的文本，在模型里成本和难度可能完全不同。</p>
+          </div>
+          <div class="demo-box">
+            <p class="lesson-index">演示命令</p>
+            <pre class="demo-command"><code>python3 llm/02-token/tokenizer_demo.py &quot;Kubernetes is awesome&quot;
+python3 llm/02-token/tokenizer_demo.py &quot;你好世界&quot;
+python3 llm/02-token/bpe_demo.py --merges 8</code></pre>
+            <ul class="lesson-list"><li><code class="inline">tokenizer_demo.py</code> 会展示文本被切成哪些 token，以及对应的 token ID。</li><li>中英文、代码、URL 的 token 数量差异会很明显。</li><li><code class="inline">bpe_demo.py</code> 会逐轮合并高频片段，展示词表是怎么长出来的。</li><li>没见过的新词也能被已有 token 拼出来，这就是子词分词的价值。</li></ul>
+          </div>
+        </section>
+
+        <section class="lesson-section" id="practice">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Try It</p>
+            <h2>自己试一轮</h2>
+            <p>先让大家亲眼看到：同一段文字进入模型前，已经被改写成一串 token ID。</p>
+          </div>
+          <ol class="lesson-steps"><li>输入一段中文、一段英文、一段代码，对比 token 数。</li><li>把 <code class="inline">--merges</code> 从 5 改到 15，观察词表变大后分词如何变粗。</li><li>尝试 URL 或 JSON，观察它们为什么容易消耗更多 token。</li></ol>
+        </section>
+
+        <section class="lesson-section" id="goals">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Takeaway</p>
+            <h2>这一讲看懂什么</h2>
+          </div>
+          <ul class="lesson-list"><li>Token 是模型真正处理的基本单位。</li><li>BPE 的核心是不断合并高频相邻片段。</li><li>Token 数影响上下文长度、费用和推理开销。</li></ul>
+        </section>
+
+        <section class="lesson-section" id="talk">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Key Points</p>
+            <h2>讲解要点</h2>
+          </div>
+          <ul class="lesson-list"><li>模型不是看字符，而是看 token ID。</li><li>分词器决定模型第一眼看到的世界长什么样。</li><li>Token 是后续 Embedding、Attention、上下文窗口和计费的共同入口。</li></ul>
+        </section>
+
+        <section class="lesson-section" id="pitfalls">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Pitfalls</p>
+            <h2>容易误解</h2>
+          </div>
+          <ul class="lesson-list"><li>Token 不等于中文汉字，也不等于英文单词。</li><li>字符数少不代表 token 少，尤其是代码、符号和 URL。</li><li>不同模型的分词器不同，token 数也会不同。</li></ul>
+        </section>
+
+        <section class="lesson-section" id="extend">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Extend</p>
+            <h2>继续阅读</h2>
+            <p>教学页只保留现场讲解需要的内容，完整文章与代码仍然保留在仓库中。</p>
+          </div>
+          <div class="deep-links">
+            <a class="secondary-btn" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/02-token/llm-02-token.md">读完整原文</a>
+            <a class="secondary-btn" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/02-token/bpe_demo.py">看完整代码</a>
+            <a class="secondary-btn" href="llm.html">回到 LLM 目录</a>
+          </div>
+        </section>
+
+        <nav class="pager">
+          <a class="pager-link" href="llm-01-next-token.html"><span>上一页</span><strong>01. 下一个词预测</strong></a>
+          <a class="pager-link" href="llm-03-embedding.html"><span>下一页</span><strong>03. Embedding</strong></a>
+        </nav>
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <p>本讲义仅保留关键代码、演示与延伸线索；收束页、番外与完整原文请见下方入口。</p>
+      <div class="footer-links">
+        <a href="llm.html">LLM 讲义</a>
+        <a href="summary.html">收束与延伸</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent">GitHub 仓库</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent/blob/book/agent/README_CN.md">系列导读</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/README.md">大模型导读</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent/blob/book/agent/build_site.py">站点生成器</a>
+      </div>
+    </footer>
+
+  </div>
+</body>
+</html>

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LLM 01. 一切从“猜下一个词”开始｜从零开始理解大模型</title>
+  <meta name="description" content="大模型不是一次性写完整答案，而是在每一步预测下一个 token，连续很多步后形成完整回复。">
+  <meta name="robots" content="index,follow">
+  <meta name="theme-color" content="#1f2430">
+  <link rel="canonical" href="https://githubxsy.github.io/nanoAgent/llm-01-next-token.html">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="从零开始理解agent">
+  <meta property="og:title" content="LLM 01. 一切从“猜下一个词”开始｜从零开始理解大模型">
+  <meta property="og:description" content="大模型不是一次性写完整答案，而是在每一步预测下一个 token，连续很多步后形成完整回复。">
+  <meta property="og:url" content="https://githubxsy.github.io/nanoAgent/llm-01-next-token.html">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="LLM 01. 一切从“猜下一个词”开始｜从零开始理解大模型">
+  <meta name="twitter:description" content="大模型不是一次性写完整答案，而是在每一步预测下一个 token，连续很多步后形成完整回复。">
+  <link rel="stylesheet" href="assets/style.css">
+  <script defer src="assets/site.js"></script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"LLM 01. 一切从“猜下一个词”开始","description":"大模型不是一次性写完整答案，而是在每一步预测下一个 token，连续很多步后形成完整回复。","dateModified":"2026-06-07","inLanguage":"zh-CN","author":{"@type":"Organization","name":"GitHubxsy","url":"https://github.com/GitHubxsy/nanoAgent"},"publisher":{"@type":"Organization","name":"GitHubxsy","url":"https://github.com/GitHubxsy/nanoAgent"},"url":"https://githubxsy.github.io/nanoAgent/llm-01-next-token.html","keywords":["Next Token","Probability","Temperature"],"isPartOf":{"@type":"CreativeWorkSeries","name":"从零开始理解大模型","url":"https://githubxsy.github.io/nanoAgent/llm.html"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://githubxsy.github.io/nanoAgent/"},{"@type":"ListItem","position":2,"name":"LLM 讲义","item":"https://githubxsy.github.io/nanoAgent/llm.html"},{"@type":"ListItem","position":3,"name":"第 01 讲","item":"https://githubxsy.github.io/nanoAgent/llm-01-next-token.html"}]}</script>
+</head>
+<body class="article-body">
+  <a class="skip-link" href="#main-content">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span class="reading-progress-bar"></span></div>
+  <div class="site-shell">
+    <header class="site-header">
+      <a class="brand" href="llm.html">
+        <span class="brand-mark">LLM</span>
+        <span class="brand-text">从零开始理解大模型</span>
+      </a>
+      <nav class="top-nav">
+        <a href="llm.html">LLM 目录</a>
+        <a href="index.html">Agent 讲义</a>
+        <a href="summary.html">总结与延伸</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent">GitHub</a>
+      </nav>
+    </header>
+
+    <main class="article-layout" id="main-content">
+      <aside class="article-sidebar">
+        <div class="sidebar-card">
+          <p class="eyebrow">LLM 01 · 第一步：模型到底在做什么</p>
+          <h2 class="lesson-title">下一个词预测</h2>
+          <p>大模型不是一次性写完整答案，而是在每一步预测下一个 token，连续很多步后形成完整回复。</p>
+          <div class="chip-row">
+            <span class="chip">6 分钟</span>
+            <span class="chip">78 行代码</span>
+            <span class="chip">Next Token Prediction</span>
+          </div>
+        </div>
+
+        <div class="sidebar-card">
+          <h2>LLM 导航</h2>
+          <div class="chapter-rail">
+            <a class="chapter-rail-link is-current" href="llm-01-next-token.html">
+              <span class="course-step">LLM 01</span>
+              <strong>下一个词预测</strong>
+              <small>Next Token Prediction</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-02-token.html">
+              <span class="course-step">LLM 02</span>
+              <strong>Token</strong>
+              <small>Tokenization + BPE</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-03-embedding.html">
+              <span class="course-step">LLM 03</span>
+              <strong>Embedding</strong>
+              <small>Embedding Vector</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-04-attention.html">
+              <span class="course-step">LLM 04</span>
+              <strong>Attention</strong>
+              <small>Query + Key + Value</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-05-transformer.html">
+              <span class="course-step">LLM 05</span>
+              <strong>Transformer</strong>
+              <small>Attention + FFN + Residual</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-06-training.html">
+              <span class="course-step">LLM 06</span>
+              <strong>训练</strong>
+              <small>Loss + Gradient Descent</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-07-inference.html">
+              <span class="course-step">LLM 07</span>
+              <strong>推理</strong>
+              <small>Prefill + Decode + KV Cache</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-08-context-window.html">
+              <span class="course-step">LLM 08</span>
+              <strong>上下文窗口</strong>
+              <small>Context Window</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-09-scaling-law.html">
+              <span class="course-step">LLM 09</span>
+              <strong>Scaling Law</strong>
+              <small>Scale + Loss</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-10-agent.html">
+              <span class="course-step">LLM 10</span>
+              <strong>LLM 到 Agent</strong>
+              <small>LLM + Tools + Loop</small>
+            </a>
+            </div>
+        </div>
+
+        <div class="sidebar-card">
+          <h2>页面目录</h2>
+          <nav class="toc">
+            <a class="toc-link" href="#scenario">为什么需要这一讲</a><a class="toc-link" href="#mental">先建立一个直觉</a><a class="toc-link" href="#code">看关键代码</a><a class="toc-link" href="#demo">运行观察</a><a class="toc-link" href="#practice">自己试一轮</a><a class="toc-link" href="#goals">这一讲看懂什么</a><a class="toc-link" href="#talk">讲解要点</a><a class="toc-link" href="#pitfalls">容易误解</a><a class="toc-link" href="#extend">继续阅读</a>
+          </nav>
+        </div>
+      </aside>
+
+      <article class="article-main">
+        <section class="article-hero">
+          <div class="breadcrumbs">
+            <a href="index.html">首页</a>
+            <span>/</span>
+            <a href="llm.html">LLM 讲义</a>
+            <span>/</span>
+            <span>第 01 页</span>
+          </div>
+          <p class="eyebrow">从零开始理解大模型</p>
+          <h1>01. 一切从“猜下一个词”开始</h1>
+          <p class="lead">大模型不是一次性写完整答案，而是在每一步预测下一个 token，连续很多步后形成完整回复。</p>
+          <div class="tag-row"><span class="tag">Next Token</span><span class="tag">Probability</span><span class="tag">Temperature</span></div>
+          <div class="hero-actions">
+            <a class="primary-btn" href="#scenario">从场景开始</a>
+            <a class="secondary-btn" href="#demo">直接看演示</a>
+          </div>
+        </section>
+
+        <section class="lesson-section" id="scenario">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Scenario</p>
+            <h2>为什么需要这一讲</h2>
+          </div>
+          <p class="scenario-text">当你输入“Thank you very”时，模型不会去数据库里查标准答案，而是在词表里给所有可能的下一个 token 排概率，然后选出一个继续往后写。</p>
+        </section>
+
+        <section class="lesson-section" id="mental">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Mental Model</p>
+            <h2>先建立一个直觉</h2>
+          </div>
+          <p class="scenario-text">把大模型想成一个特别强的输入法：它每次只猜下一个 token，但猜得足够准、连续猜很多次，就像是在回答问题。</p>
+        </section>
+
+        <section class="lesson-section" id="code">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Code First</p>
+            <h2>看关键代码</h2>
+            <p>这里只保留最能说明机制的片段。完整代码可以在页面底部继续打开。</p>
+          </div>
+          <div class="code-group">
+
+            <article class="code-card">
+              <div class="code-card-head">
+                <div>
+                  <p class="lesson-index">取最后一个位置的预测</p>
+                  <h3>模型会对最后一个位置给出整个词表的分数，再用 softmax 变成概率。</h3>
+                </div>
+                <a class="source-link" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/01-next-token/predict.py#L38-L48">看 GitHub 行号</a>
+              </div>
+              <pre class="code-block"><code class="language-python">  38 with torch.no_grad():
+  39     outputs = model(input_ids)
+  40     # outputs.logits 的形状: [1, token数量, 词表大小(50257)]
+  41     # 我们只关心最后一个位置的预测（即&quot;下一个词&quot;）
+  42     next_token_logits = outputs.logits[0, -1, :]
+  43
+  44 print(f&quot;\n词表大小: {next_token_logits.shape[0]} 个 token&quot;)
+  45
+  46 # ==================== 4. 看看模型觉得哪些词最可能 ====================
+  47
+  48 probabilities = torch.softmax(next_token_logits, dim=0)</code></pre>
+            </article>
+
+            <article class="code-card">
+              <div class="code-card-head">
+                <div>
+                  <p class="lesson-index">查看最可能的下一个 token</p>
+                  <h3>Top K 候选词能直接显示：模型不是只知道一个答案，而是在多个可能性里选择。</h3>
+                </div>
+                <a class="source-link" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/01-next-token/predict.py#L50-L65">看 GitHub 行号</a>
+              </div>
+              <pre class="code-block"><code class="language-python">  50 top_k = 10
+  51 top_probs, top_indices = torch.topk(probabilities, top_k)
+  52
+  53 print(f&quot;\n模型预测 &#x27;{prompt}&#x27; 后面最可能的 {top_k} 个词：&quot;)
+  54 print(&quot;-&quot; * 50)
+  55 for i in range(top_k):
+  56     token = tokenizer.decode(top_indices[i])
+  57     prob = top_probs[i].item() * 100
+  58     bar = &quot;█&quot; * int(prob / 2)
+  59     print(f&quot;  {i+1:2d}. &#x27;{token}&#x27; \t {prob:5.1f}%  {bar}&quot;)
+  60
+  61 # ==================== 5. 选择概率最高的词 ====================
+  62
+  63 best_token = tokenizer.decode(top_indices[0])
+  64 print(f&quot;\n选择概率最高的: &#x27;{best_token}&#x27;&quot;)
+  65 print(f&quot;拼接后: &#x27;{prompt}{best_token}&#x27;&quot;)</code></pre>
+            </article>
+
+          </div>
+        </section>
+
+        <section class="lesson-section" id="demo">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Live Demo</p>
+            <h2>运行观察</h2>
+            <p>把“生成回答”拆成可观察的概率表和逐词生成过程。</p>
+          </div>
+          <div class="demo-box">
+            <p class="lesson-index">演示命令</p>
+            <pre class="demo-command"><code>python3 llm/01-next-token/predict.py &quot;Thank you very&quot;
+python3 llm/01-next-token/generate.py &quot;The meaning of life is&quot; --temperature 0.3 --max-tokens 12
+python3 llm/01-next-token/generate.py &quot;The meaning of life is&quot; --temperature 1.5 --max-tokens 12</code></pre>
+            <ul class="lesson-list"><li><code class="inline">predict.py</code> 会打印输入被切成哪些 token，以及下一个 token 的 Top 10 概率。</li><li>低 Temperature 会更偏向高概率 token，输出更稳定。</li><li>高 Temperature 会让低概率 token 也有机会被选中，输出更发散。</li><li>完整回答其实是“预测一个、拼上去、再预测下一个”的循环。</li></ul>
+          </div>
+        </section>
+
+        <section class="lesson-section" id="practice">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Try It</p>
+            <h2>自己试一轮</h2>
+            <p>先把大模型从“会聊天的黑盒”降维成“会连续预测 token 的系统”。</p>
+          </div>
+          <ol class="lesson-steps"><li>换一个短输入，例如 <code class="inline">Once upon a time</code>，观察 Top 10 候选词是否符合直觉。</li><li>把 Temperature 分别设为 0.2、1.0、1.8，对比稳定性。</li><li>把 <code class="inline">--max-tokens</code> 调小，观察回答如何被截断。</li></ol>
+        </section>
+
+        <section class="lesson-section" id="goals">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Takeaway</p>
+            <h2>这一讲看懂什么</h2>
+          </div>
+          <ul class="lesson-list"><li>大模型的基本动作是预测下一个 token。</li><li>概率最高不等于唯一答案，采样策略会影响输出风格。</li><li>看懂这一讲，后面的 Token、Embedding、Attention 都是在解释“它怎么猜得更准”。</li></ul>
+        </section>
+
+        <section class="lesson-section" id="talk">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Key Points</p>
+            <h2>讲解要点</h2>
+          </div>
+          <ul class="lesson-list"><li>“智能感”来自大量连续的小预测，而不是一次神秘的完整推理。</li><li>概率分布越集中，模型越确定；概率分布越分散，输出越容易变化。</li><li>Temperature 不是让模型更聪明，而是改变选择 token 时的随机程度。</li></ul>
+        </section>
+
+        <section class="lesson-section" id="pitfalls">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Pitfalls</p>
+            <h2>容易误解</h2>
+          </div>
+          <ul class="lesson-list"><li>不要把“预测下一个 token”误解成简单背诵，它背后已经包含上下文计算。</li><li>不要把 Temperature 当成准确率开关，高温通常只是更发散。</li><li>一次输出看起来像一句话，底层却是一连串 token 选择。</li></ul>
+        </section>
+
+        <section class="lesson-section" id="extend">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Extend</p>
+            <h2>继续阅读</h2>
+            <p>教学页只保留现场讲解需要的内容，完整文章与代码仍然保留在仓库中。</p>
+          </div>
+          <div class="deep-links">
+            <a class="secondary-btn" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/01-next-token/llm-01-next-token.md">读完整原文</a>
+            <a class="secondary-btn" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/01-next-token/predict.py">看完整代码</a>
+            <a class="secondary-btn" href="llm.html">回到 LLM 目录</a>
+          </div>
+        </section>
+
+        <nav class="pager">
+          <a class="pager-link" href="llm.html"><span>返回</span><strong>LLM 讲义目录</strong></a>
+          <a class="pager-link" href="llm-02-token.html"><span>下一页</span><strong>02. Token</strong></a>
+        </nav>
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <p>本讲义仅保留关键代码、演示与延伸线索；收束页、番外与完整原文请见下方入口。</p>
+      <div class="footer-links">
+        <a href="llm.html">LLM 讲义</a>
+        <a href="summary.html">收束与延伸</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent">GitHub 仓库</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent/blob/book/agent/README_CN.md">系列导读</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/README.md">大模型导读</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent/blob/book/agent/build_site.py">站点生成器</a>
+      </div>
+    </footer>
+
+  </div>
+</body>
+</html>

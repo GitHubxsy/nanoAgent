@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LLM 09. Scaling Law：为什么“大力出奇迹”有效｜从零开始理解大模型</title>
+  <meta name="description" content="Scaling Law 描述模型规模、数据规模、计算量和 Loss 之间的经验关系，解释了为什么更大模型通常更强。">
+  <meta name="robots" content="index,follow">
+  <meta name="theme-color" content="#1f2430">
+  <link rel="canonical" href="https://githubxsy.github.io/nanoAgent/llm-09-scaling-law.html">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="从零开始理解agent">
+  <meta property="og:title" content="LLM 09. Scaling Law：为什么“大力出奇迹”有效｜从零开始理解大模型">
+  <meta property="og:description" content="Scaling Law 描述模型规模、数据规模、计算量和 Loss 之间的经验关系，解释了为什么更大模型通常更强。">
+  <meta property="og:url" content="https://githubxsy.github.io/nanoAgent/llm-09-scaling-law.html">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="LLM 09. Scaling Law：为什么“大力出奇迹”有效｜从零开始理解大模型">
+  <meta name="twitter:description" content="Scaling Law 描述模型规模、数据规模、计算量和 Loss 之间的经验关系，解释了为什么更大模型通常更强。">
+  <link rel="stylesheet" href="assets/style.css">
+  <script defer src="assets/site.js"></script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"LLM 09. Scaling Law：为什么“大力出奇迹”有效","description":"Scaling Law 描述模型规模、数据规模、计算量和 Loss 之间的经验关系，解释了为什么更大模型通常更强。","dateModified":"2026-06-07","inLanguage":"zh-CN","author":{"@type":"Organization","name":"GitHubxsy","url":"https://github.com/GitHubxsy/nanoAgent"},"publisher":{"@type":"Organization","name":"GitHubxsy","url":"https://github.com/GitHubxsy/nanoAgent"},"url":"https://githubxsy.github.io/nanoAgent/llm-09-scaling-law.html","keywords":["Scaling Law","Model Size","Loss"],"isPartOf":{"@type":"CreativeWorkSeries","name":"从零开始理解大模型","url":"https://githubxsy.github.io/nanoAgent/llm.html"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://githubxsy.github.io/nanoAgent/"},{"@type":"ListItem","position":2,"name":"LLM 讲义","item":"https://githubxsy.github.io/nanoAgent/llm.html"},{"@type":"ListItem","position":3,"name":"第 09 讲","item":"https://githubxsy.github.io/nanoAgent/llm-09-scaling-law.html"}]}</script>
+</head>
+<body class="article-body">
+  <a class="skip-link" href="#main-content">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span class="reading-progress-bar"></span></div>
+  <div class="site-shell">
+    <header class="site-header">
+      <a class="brand" href="llm.html">
+        <span class="brand-mark">LLM</span>
+        <span class="brand-text">从零开始理解大模型</span>
+      </a>
+      <nav class="top-nav">
+        <a href="llm.html">LLM 目录</a>
+        <a href="index.html">Agent 讲义</a>
+        <a href="summary.html">总结与延伸</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent">GitHub</a>
+      </nav>
+    </header>
+
+    <main class="article-layout" id="main-content">
+      <aside class="article-sidebar">
+        <div class="sidebar-card">
+          <p class="eyebrow">LLM 09 · 第九步：规模为什么重要</p>
+          <h2 class="lesson-title">Scaling Law</h2>
+          <p>Scaling Law 描述模型规模、数据规模、计算量和 Loss 之间的经验关系，解释了为什么更大模型通常更强。</p>
+          <div class="chip-row">
+            <span class="chip">6 分钟</span>
+            <span class="chip">323 行代码</span>
+            <span class="chip">Scale + Loss</span>
+          </div>
+        </div>
+
+        <div class="sidebar-card">
+          <h2>LLM 导航</h2>
+          <div class="chapter-rail">
+            <a class="chapter-rail-link" href="llm-01-next-token.html">
+              <span class="course-step">LLM 01</span>
+              <strong>下一个词预测</strong>
+              <small>Next Token Prediction</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-02-token.html">
+              <span class="course-step">LLM 02</span>
+              <strong>Token</strong>
+              <small>Tokenization + BPE</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-03-embedding.html">
+              <span class="course-step">LLM 03</span>
+              <strong>Embedding</strong>
+              <small>Embedding Vector</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-04-attention.html">
+              <span class="course-step">LLM 04</span>
+              <strong>Attention</strong>
+              <small>Query + Key + Value</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-05-transformer.html">
+              <span class="course-step">LLM 05</span>
+              <strong>Transformer</strong>
+              <small>Attention + FFN + Residual</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-06-training.html">
+              <span class="course-step">LLM 06</span>
+              <strong>训练</strong>
+              <small>Loss + Gradient Descent</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-07-inference.html">
+              <span class="course-step">LLM 07</span>
+              <strong>推理</strong>
+              <small>Prefill + Decode + KV Cache</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-08-context-window.html">
+              <span class="course-step">LLM 08</span>
+              <strong>上下文窗口</strong>
+              <small>Context Window</small>
+            </a>
+
+            <a class="chapter-rail-link is-current" href="llm-09-scaling-law.html">
+              <span class="course-step">LLM 09</span>
+              <strong>Scaling Law</strong>
+              <small>Scale + Loss</small>
+            </a>
+
+            <a class="chapter-rail-link" href="llm-10-agent.html">
+              <span class="course-step">LLM 10</span>
+              <strong>LLM 到 Agent</strong>
+              <small>LLM + Tools + Loop</small>
+            </a>
+            </div>
+        </div>
+
+        <div class="sidebar-card">
+          <h2>页面目录</h2>
+          <nav class="toc">
+            <a class="toc-link" href="#scenario">为什么需要这一讲</a><a class="toc-link" href="#mental">先建立一个直觉</a><a class="toc-link" href="#code">看关键代码</a><a class="toc-link" href="#demo">运行观察</a><a class="toc-link" href="#practice">自己试一轮</a><a class="toc-link" href="#goals">这一讲看懂什么</a><a class="toc-link" href="#talk">讲解要点</a><a class="toc-link" href="#pitfalls">容易误解</a><a class="toc-link" href="#extend">继续阅读</a>
+          </nav>
+        </div>
+      </aside>
+
+      <article class="article-main">
+        <section class="article-hero">
+          <div class="breadcrumbs">
+            <a href="index.html">首页</a>
+            <span>/</span>
+            <a href="llm.html">LLM 讲义</a>
+            <span>/</span>
+            <span>第 09 页</span>
+          </div>
+          <p class="eyebrow">从零开始理解大模型</p>
+          <h1>09. Scaling Law：为什么“大力出奇迹”有效</h1>
+          <p class="lead">Scaling Law 描述模型规模、数据规模、计算量和 Loss 之间的经验关系，解释了为什么更大模型通常更强。</p>
+          <div class="tag-row"><span class="tag">Scaling Law</span><span class="tag">Model Size</span><span class="tag">Loss</span></div>
+          <div class="hero-actions">
+            <a class="primary-btn" href="#scenario">从场景开始</a>
+            <a class="secondary-btn" href="#demo">直接看演示</a>
+          </div>
+        </section>
+
+        <section class="lesson-section" id="scenario">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Scenario</p>
+            <h2>为什么需要这一讲</h2>
+          </div>
+          <p class="scenario-text">为什么行业不断把模型做大、数据做多、算力堆高？不是因为迷信规模，而是经验上规模扩大后 Loss 会按规律下降。</p>
+        </section>
+
+        <section class="lesson-section" id="mental">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Mental Model</p>
+            <h2>先建立一个直觉</h2>
+          </div>
+          <p class="scenario-text">Scaling Law 像工程里的压测曲线：不是保证每次都线性变好，但能告诉你继续投入规模时，大概率会往哪个方向走。</p>
+        </section>
+
+        <section class="lesson-section" id="code">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Code First</p>
+            <h2>看关键代码</h2>
+            <p>这里只保留最能说明机制的片段。完整代码可以在页面底部继续打开。</p>
+          </div>
+          <div class="code-group">
+
+            <article class="code-card">
+              <div class="code-card-head">
+                <div>
+                  <p class="lesson-index">构造不同规模的模型</p>
+                  <h3>同一份数据上训练不同参数量的模型，用 Loss 观察规模变化带来的趋势。</h3>
+                </div>
+                <a class="source-link" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/09-scaling-law/scaling_law.py#L167-L199">看 GitHub 行号</a>
+              </div>
+              <pre class="code-block"><code class="language-python"> 167     # 5 个不同规模的配置（控制在数据量能支撑的范围内）
+ 168     # 大模型需要更多步数才能收敛
+ 169     base_steps = args.steps
+ 170     configs = [
+ 171         {&quot;d_model&quot;: 16, &quot;n_layers&quot;: 1, &quot;n_heads&quot;: 2, &quot;label&quot;: &quot;极小&quot;, &quot;steps&quot;: base_steps},
+ 172         {&quot;d_model&quot;: 32, &quot;n_layers&quot;: 1, &quot;n_heads&quot;: 2, &quot;label&quot;: &quot;小&quot;, &quot;steps&quot;: base_steps},
+ 173         {&quot;d_model&quot;: 64, &quot;n_layers&quot;: 2, &quot;n_heads&quot;: 4, &quot;label&quot;: &quot;中&quot;, &quot;steps&quot;: int(base_steps * 1.5)},
+ 174         {&quot;d_model&quot;: 96, &quot;n_layers&quot;: 2, &quot;n_heads&quot;: 4, &quot;label&quot;: &quot;大&quot;, &quot;steps&quot;: base_steps * 2},
+ 175         {&quot;d_model&quot;: 128, &quot;n_layers&quot;: 3, &quot;n_heads&quot;: 4, &quot;label&quot;: &quot;较大&quot;, &quot;steps&quot;: base_steps * 3},
+ 176     ]
+ 177
+ 178     print(&quot;=&quot; * 60)
+ 179     print(&quot;Scaling Law 实验：不同参数量 vs Loss&quot;)
+ 180     print(&quot;=&quot; * 60)
+ 181
+ 182     results = []
+ 183
+ 184     for cfg in configs:
+ 185         label = cfg[&quot;label&quot;]
+ 186         model_steps = cfg[&quot;steps&quot;]
+ 187         model_kwargs = {k: v for k, v in cfg.items() if k not in {&quot;label&quot;, &quot;steps&quot;}}
+ 188         model = TinyTransformer(vocab_size, **model_kwargs)
+ 189         n_params = sum(p.numel() for p in model.parameters())
+ 190
+ 191         start = time.time()
+ 192         final_loss = train_model(model, data, steps=model_steps)
+ 193         elapsed = time.time() - start
+ 194
+ 195         results.append((n_params, final_loss, label))
+ 196         print(
+ 197             f&quot;  [{label:&gt;2}] 参数量: {n_params:&gt;10,}  Loss: {final_loss:.3f}&quot;
+ 198             f&quot;  ({elapsed:.1f}s, {model_steps} steps)&quot;
+ 199         )</code></pre>
+            </article>
+
+            <article class="code-card">
+              <div class="code-card-head">
+                <div>
+                  <p class="lesson-index">在 log-log 空间看趋势</p>
+                  <h3>Scaling Law 常用对数坐标观察，因为规模变化通常跨越多个数量级。</h3>
+                </div>
+                <a class="source-link" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/09-scaling-law/scaling_law.py#L219-L232">看 GitHub 行号</a>
+              </div>
+              <pre class="code-block"><code class="language-python"> 219     # 简单线性回归计算斜率
+ 220     n = len(log_params)
+ 221     mean_x = sum(log_params) / n
+ 222     mean_y = sum(log_losses) / n
+ 223     numerator = sum((x - mean_x) * (y - mean_y) for x, y in zip(log_params, log_losses))
+ 224     denominator = sum((x - mean_x) ** 2 for x in log_params)
+ 225     slope = numerator / denominator if denominator != 0 else 0
+ 226     intercept = mean_y - slope * mean_x
+ 227
+ 228     print(&quot;\n  Log-Log 线性回归:&quot;)
+ 229     print(f&quot;    斜率 α = {-slope:.3f} (Scaling Law 中 L ∝ N^(-α))&quot;)
+ 230     change_pct = (10 ** slope - 1) * 100
+ 231     direction = &quot;下降&quot; if slope &lt; 0 else &quot;上升&quot;
+ 232     print(f&quot;    即参数量每增长 10 倍, Loss {direction}约 {abs(change_pct):.0f}%&quot;)</code></pre>
+            </article>
+
+          </div>
+        </section>
+
+        <section class="lesson-section" id="demo">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Live Demo</p>
+            <h2>运行观察</h2>
+            <p>用几个不同大小的微型模型，观察参数量增加时 Loss 的整体趋势。</p>
+          </div>
+          <div class="demo-box">
+            <p class="lesson-index">演示命令</p>
+            <pre class="demo-command"><code>python3 llm/09-scaling-law/scaling_law.py --steps 50</code></pre>
+            <ul class="lesson-list"><li>脚本会训练多组不同参数量的小模型。</li><li>结果表会打印参数量、Loss、log 参数量和 log Loss。</li><li>如果训练步数足够，通常能看到更大模型 Loss 更低的趋势。</li><li>这个实验只演示趋势，不等同于真实大模型训练结论。</li></ul>
+          </div>
+        </section>
+
+        <section class="lesson-section" id="practice">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Try It</p>
+            <h2>自己试一轮</h2>
+            <p>用小实验解释趋势，用边界提醒大家不要把规模神化。</p>
+          </div>
+          <ol class="lesson-steps"><li>先用 <code class="inline">--steps 50</code> 快速观察，再改成 200 看趋势是否更稳定。</li><li>查看 <code class="inline">configs</code>，理解每个模型规模差异来自哪里。</li><li>观察 log-log 输出，理解为什么 Scaling Law 常用对数图表示。</li></ol>
+        </section>
+
+        <section class="lesson-section" id="goals">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Takeaway</p>
+            <h2>这一讲看懂什么</h2>
+          </div>
+          <ul class="lesson-list"><li>模型能力提升常常来自参数、数据和算力共同扩大。</li><li>Scaling Law 关注的是趋势，不是某一次实验的绝对值。</li><li>规模带来能力，也带来训练、推理、成本和安全问题。</li></ul>
+        </section>
+
+        <section class="lesson-section" id="talk">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Key Points</p>
+            <h2>讲解要点</h2>
+          </div>
+          <ul class="lesson-list"><li>“大力出奇迹”背后是可观察的经验规律。</li><li>参数量不是唯一变量，数据量和计算量同样关键。</li><li>真实系统要在效果、成本、延迟之间做取舍。</li></ul>
+        </section>
+
+        <section class="lesson-section" id="pitfalls">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Pitfalls</p>
+            <h2>容易误解</h2>
+          </div>
+          <ul class="lesson-list"><li>不要把小实验的数字当成真实大模型定律，只看趋势。</li><li>模型变大并不自动解决数据质量和对齐问题。</li><li>规模收益会有边际成本，工程上必须算账。</li></ul>
+        </section>
+
+        <section class="lesson-section" id="extend">
+          <div class="lesson-section-head">
+            <p class="eyebrow">Extend</p>
+            <h2>继续阅读</h2>
+            <p>教学页只保留现场讲解需要的内容，完整文章与代码仍然保留在仓库中。</p>
+          </div>
+          <div class="deep-links">
+            <a class="secondary-btn" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/09-scaling-law/llm-09-scaling-law.md">读完整原文</a>
+            <a class="secondary-btn" href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/09-scaling-law/scaling_law.py">看完整代码</a>
+            <a class="secondary-btn" href="llm.html">回到 LLM 目录</a>
+          </div>
+        </section>
+
+        <nav class="pager">
+          <a class="pager-link" href="llm-08-context-window.html"><span>上一页</span><strong>08. 上下文窗口</strong></a>
+          <a class="pager-link" href="llm-10-agent.html"><span>下一页</span><strong>10. LLM 到 Agent</strong></a>
+        </nav>
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <p>本讲义仅保留关键代码、演示与延伸线索；收束页、番外与完整原文请见下方入口。</p>
+      <div class="footer-links">
+        <a href="llm.html">LLM 讲义</a>
+        <a href="summary.html">收束与延伸</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent">GitHub 仓库</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent/blob/book/agent/README_CN.md">系列导读</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent/blob/book/llm/README.md">大模型导读</a>
+        <a href="https://github.com/GitHubxsy/nanoAgent/blob/book/agent/build_site.py">站点生成器</a>
+      </div>
+    </footer>
+
+  </div>
+</body>
+</html>
