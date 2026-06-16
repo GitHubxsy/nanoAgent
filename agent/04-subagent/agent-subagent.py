@@ -3,25 +3,37 @@ agent-subagent.py - 最简 SubAgent 实现
 核心思路：subagent 就是一个工具，调用时启动独立的 Agent 循环
 
 用法:
-  python agent/04-subagent/agent-subagent.py "不要直接完成任务。请调用 subagent 工具两次，两个子代理都不要读写文件：1）role=Python API 设计师..."
+  python agent/04-subagent/agent-subagent.py
+  "不要直接完成任务。请调用 subagent 工具两次，两个子代理都不要读写文件：1）role=Python API 设计师..."
 """
 
 import os
 import json
 import subprocess
+from pathlib import Path
 import sys
 import glob as glob_module
 import httpx
 from datetime import datetime
 from openai import OpenAI
 
+def load_config():
+    """从项目根目录的 .agent/config.json 加载配置（API Key、模型等）。"""
+    config_path = Path(__file__).resolve().parents[2] / ".agent" / "config.json"
+    with open(config_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+config = load_config()
+
+# 初始化 OpenAI 兼容客户端（支持任何兼容 OpenAI 接口的模型服务）
 client = OpenAI(
-    api_key=os.environ.get("OPENAI_API_KEY"),
-    base_url=os.environ.get("OPENAI_BASE_URL"),
+    api_key=config["OPENAI_API_KEY"],
+    base_url=config["OPENAI_BASE_URL"],
     http_client=httpx.Client(verify=False),
 )
 
-MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+MODEL = config["OPENAI_MODEL"]
 MEMORY_FILE = "agent_memory.md"
 
 # ==================== 工具实现 ====================

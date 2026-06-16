@@ -104,7 +104,7 @@ functions = {"execute_bash": execute_bash, "read_file": read_file, "write_file":
 
 
 # ── Agent 核心循环 ────────────────────────────────────────────────
-def run_agent(user_message, max_iterations=10):
+def run_agent(user_message, max_iterations=20):
     """
     Agent 的核心：一个 "推理 → 行动 → 观察" 的循环。
 
@@ -126,7 +126,7 @@ def run_agent(user_message, max_iterations=10):
         response = client.chat.completions.create(
             model=config["OPENAI_MODEL"],
             messages=messages,
-            tools=tools,
+            tools=tools
         )
         message = response.choices[0].message
         messages.append(message)
@@ -156,6 +156,6 @@ def run_agent(user_message, max_iterations=10):
 
 if __name__ == "__main__":
     import sys
-
+    # task   "创建 current.py，可以输出当前时间。运行这个脚本，并输出当前时间"
     task = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else "Hello"
     print(run_agent(task))
