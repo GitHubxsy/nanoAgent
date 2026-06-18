@@ -15,24 +15,36 @@ import os
 import json
 import subprocess
 import sys
+from pathlib import Path
 import httpx
 from datetime import datetime
 from openai import OpenAI
 
+
+def load_config():
+    """从项目根目录的 .agent/config.json 加载配置（API Key、模型等）。"""
+    config_path = Path(__file__).resolve().parents[2] / ".agent" / "config.json"
+    with open(config_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+config = load_config()
+
+# 初始化 OpenAI 兼容客户端（支持任何兼容 OpenAI 接口的模型服务）
 client = OpenAI(
-    api_key=os.environ.get("OPENAI_API_KEY"),
-    base_url=os.environ.get("OPENAI_BASE_URL"),
+    api_key=config["OPENAI_API_KEY"],
+    base_url=config["OPENAI_BASE_URL"],
     http_client=httpx.Client(verify=False),
 )
 
-MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+MODEL = config["OPENAI_MODEL"]
 
 # ==================== 工具 ====================
 
 
 def read(path, offset=None, limit=None):
     try:
-        with open(path, "r") as f:
+        with open(path, "r", encoding="utf-8") as f:
             lines = f.readlines()
         start = offset if offset else 0
         end = start + limit if limit else len(lines)
@@ -48,7 +60,7 @@ def write(path, content):
         os.makedirs(
             os.path.dirname(path) if os.path.dirname(path) else ".", exist_ok=True
         )
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             f.write(content)
         return f"Successfully wrote to {path}"
     except Exception as e:
@@ -57,11 +69,11 @@ def write(path, content):
 
 def edit(path, old_string, new_string):
     try:
-        with open(path, "r") as f:
+        with open(path, "r", encoding="utf-8") as f:
             content = f.read()
         if content.count(old_string) != 1:
             return f"Error: old_string must appear exactly once (found {content.count(old_string)})"
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             f.write(content.replace(old_string, new_string))
         return f"Successfully edited {path}"
     except Exception as e:
