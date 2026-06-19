@@ -7,16 +7,27 @@ nano_mcp_http_agent.py - 第一篇的 run_agent 接入 MCP Server
 用法: python agent/16-mcp-real/nano_mcp_http_agent.py "What is 3 + 5?"
 """
 import os, sys, json, requests
+from pathlib import Path
 import httpx
 from openai import OpenAI
 
+
+def load_config():
+    """从项目根目录的 .agent/config.json 加载配置（API Key、模型等）。"""
+    config_path = Path(__file__).resolve().parents[2] / ".agent" / "config.json"
+    with open(config_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+config = load_config()
+
 SERVER_URL = os.environ.get("MCP_SERVER_URL", "http://127.0.0.1:8766/mcp")
 CLIENT = OpenAI(
-    api_key=os.environ.get("OPENAI_API_KEY"),
-    base_url=os.environ.get("OPENAI_BASE_URL"),
+    api_key=config["OPENAI_API_KEY"],
+    base_url=config["OPENAI_BASE_URL"],
     http_client=httpx.Client(verify=False),
 )
-MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+MODEL = config["OPENAI_MODEL"]
 
 # ===== MCP 通信：一个函数搞定 =====
 

@@ -16,20 +16,39 @@ agent-compact.py - 最简上下文压缩 Agent
   python agent/06-compact/agent-compact.py "请按步骤执行，不要合并成一个 shell 命令：先列出 agent 目录下的 Python 文件，再分别读取三个示例文件，最后写入 compact-demo-report.txt"
 """
 
-import os
 import json
 import subprocess
 import sys
+from pathlib import Path
 import httpx
 from openai import OpenAI
 
+# Windows 控制台默认编码是 GBK/cp936，打印中文/emoji 会 UnicodeEncodeError。
+# 强制 stdout/stderr 用 UTF-8；reconfigure 仅对真实文件流可用，故做容错。
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass  # 重定向 / 某些 IDE 捕获输出时不可用，跳过即可
+
+
+def load_config():
+    """从项目根目录的 .agent/config.json 加载配置（API Key、模型等）。"""
+    config_path = Path(__file__).resolve().parents[2] / ".agent" / "config.json"
+    with open(config_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+config = load_config()
+
+# 初始化 OpenAI 兼容客户端（支持任何兼容 OpenAI 接口的模型服务）
 client = OpenAI(
-    api_key=os.environ.get("OPENAI_API_KEY"),
-    base_url=os.environ.get("OPENAI_BASE_URL"),
+    api_key=config["OPENAI_API_KEY"],
+    base_url=config["OPENAI_BASE_URL"],
     http_client=httpx.Client(verify=False),
 )
 
-MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+MODEL = config["OPENAI_MODEL"]
 
 # ==================== 工具（和 agent-essence.py 一样） ====================
 
@@ -95,7 +114,7 @@ def execute_bash(command):
 
 def read_file(path):
     try:
-        with open(path, "r") as f:
+        with open(path, "r", encoding="utf-8") as f:
             return f.read()
     except Exception as e:
         return f"Error: {str(e)}"
@@ -103,7 +122,7 @@ def read_file(path):
 
 def write_file(path, content):
     try:
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             f.write(content)
         return f"Successfully wrote to {path}"
     except Exception as e:
