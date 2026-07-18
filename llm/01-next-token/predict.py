@@ -1,5 +1,5 @@
 """
-predict.py —— 亲眼看到"下一个词预测"
+predict.py —— 亲眼看到"下一个词预测"   next token prediction
 从零开始理解大模型（一）配套代码
 
 用法：
@@ -10,7 +10,22 @@ predict.py —— 亲眼看到"下一个词预测"
 需要：pip install transformers torch
 """
 
+import os
 import sys
+
+# ==================== 0. 运行环境准备（让 demo 开箱即用） ====================
+
+# (a) Windows 控制台默认 GBK 编码，中文与 █ 等符号会乱码 → 切到 UTF-8
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except (AttributeError, OSError):
+        pass  # stdout 被重定向或不是 TextIOWrapper 时忽略
+
+# (b) 国内直连 huggingface.co 常被重置（WinError 10054），改用官方镜像 hf-mirror.com
+#     必须在 import transformers 之前设置才生效；用 setdefault 不覆盖用户已设的值
+os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
+
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 import torch
 
@@ -26,7 +41,7 @@ model.eval()
 prompt = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else "Thank you very"
 print(f"\n输入: '{prompt}'")
 
-# 把文字变成模型能懂的数字（token ID）
+#   step1、    把文字变成模型能懂的数字（token ID）
 input_ids = tokenizer.encode(prompt, return_tensors="pt")
 tokens = [tokenizer.decode(id) for id in input_ids[0]]
 print(f"Token IDs: {input_ids.tolist()[0]}")
@@ -37,7 +52,7 @@ print(f"Token 数量: {len(tokens)}")
 
 with torch.no_grad():
     outputs = model(input_ids)
-    # outputs.logits 的形状: [1, token数量, 词表大小(50257)]
+    #   step2、    预测下一个词   outputs.logits 的形状: [1, token数量, 词表大小(50257)]
     # 我们只关心最后一个位置的预测（即"下一个词"）
     next_token_logits = outputs.logits[0, -1, :]
 
@@ -48,6 +63,7 @@ print(f"\n词表大小: {next_token_logits.shape[0]} 个 token")
 probabilities = torch.softmax(next_token_logits, dim=0)
 
 top_k = 10
+#  预测top10   top10概率以及对应的token
 top_probs, top_indices = torch.topk(probabilities, top_k)
 
 print(f"\n模型预测 '{prompt}' 后面最可能的 {top_k} 个词：")
