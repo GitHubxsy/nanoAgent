@@ -1,5 +1,5 @@
 """
-generate.py —— 逐词生成，模拟大模型的"打字机效果"
+generate.py —— 逐词生成，模拟大模型的"打字机效果" --- 循环-next token prediction生成文章
 从零开始理解大模型（一）配套代码
 
 用法：
@@ -11,11 +11,30 @@ generate.py —— 逐词生成，模拟大模型的"打字机效果"
 需要：pip install transformers torch
 """
 
+import os
 import sys
 import argparse
 import time
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 import torch
+
+# ==================== 0. 运行环境准备（让 demo 开箱即用） ====================
+
+# (a) Windows 控制台默认 GBK 编码，中文与 █ 等符号会乱码 → 切到 UTF-8
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except (AttributeError, OSError):
+        pass  # stdout 被重定向或不是 TextIOWrapper 时忽略
+
+# (b) 国内直连 huggingface.co 常被重置（WinError 10054），改用官方镜像 hf-mirror.com
+#     必须在 import transformers 之前设置才生效；用 setdefault 不覆盖用户已设的值
+os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
+
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
+import torch
+
+# ==================== 1. 加载模型和分词器 ====================
 
 # 加载模型
 print("正在加载模型…")
@@ -105,24 +124,25 @@ def main():
 
     prompt = " ".join(args.prompt)
 
+
     if args.temperature is not None:
         # 指定了 temperature，只跑一次
         generate_step_by_step(prompt, max_tokens=args.max_tokens, temperature=args.temperature)
     else:
         # 没指定 temperature，跑对比实验
-        print("实验 1: Temperature = 0.3（保守模式）")
+        print("实验 1: Temperature = 0.1（保守模式）")
         print()
-        generate_step_by_step(prompt, max_tokens=args.max_tokens, temperature=0.3)
+        generate_step_by_step(prompt, max_tokens=args.max_tokens, temperature=0.1)
 
         print("\n")
         print("实验 2: Temperature = 1.0（默认模式）")
         print()
-        generate_step_by_step(prompt, max_tokens=args.max_tokens, temperature=1.0)
+        # generate_step_by_step(prompt, max_tokens=args.max_tokens, temperature=1.0)
 
         print("\n")
         print("实验 3: Temperature = 1.5（奔放模式）")
         print()
-        generate_step_by_step(prompt, max_tokens=args.max_tokens, temperature=1.5)
+        # generate_step_by_step(prompt, max_tokens=args.max_tokens, temperature=1.5)
 
         print("\n")
         print("-" * 60)
