@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "tier": 1,
+  "book": {"title": "从零开始理解 Agent（一）：工具与循环", "slug": "agent-first", "language": "zh", "readers": "零基础技术爱好者", "pilot": "ch01"},
+  "words": ["将从零开始理解agent第一篇转为视频", "简洁明了，通俗易懂"],
+  "look": {"palette": {"board": "#f5f0e5", "ink": "#213e3b", "accent": ["#13796c", "#b65331", "#416a9c"]}, "meaning": {"model": "#13796c", "tools": "#b65331", "messages": "#416a9c"}, "fonts": {"text": "PingFang SC", "math": "Georgia"}, "notation": "42 is illustrative; tool calls express intent, host code executes"},
+  "voice": {"engine": "edge", "voice": "zh-CN-YunxiNeural", "rate": "+0%"},
+  "pacing": {"minutes": [4, 5], "checks": "narrated checkpoints without quiz stops"},
+  "engine": {"source": "DozenTwelve/Papermorph", "ref": "engine-v2.9"},
+  "models": {"extract": "current conversation", "narration": "current conversation", "picture": "current conversation", "checks": "current conversation", "review": "current conversation", "rework": "current conversation", "register": "current conversation"},
+  "approved": []
+}

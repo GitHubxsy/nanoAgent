@@ -1,0 +1,5 @@
+exports/
+books/*/review/
+content/**/*.mp3
+content/**/*.timings.json
+__pycache__/

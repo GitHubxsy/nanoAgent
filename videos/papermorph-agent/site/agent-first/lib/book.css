@@ -1,0 +1,23 @@
+:root {
+  --page: #e9e3d7;
+  --board: #f5f0e5;
+  --panel: #fffaf1;
+  --edge: #d3cbbb;
+  --chalk: #213e3b;
+  --dim: #596c65;
+  --faint: #91a097;
+  --task: #13796c;
+  --quiz: #416a9c;
+  --good: #13796c;
+  --bad: #b65331;
+  --on-fill: #ffffff;
+  --vignette: transparent;
+  --rule: #d3cbbb;
+  --track: #ddd7ca;
+  --track-ask: #cadbd4;
+  --bar-edge: #cbc4b5;
+  --hover: #e6e0d3;
+  --veil: #f5f0e5ee;
+  --math-font: Georgia, serif;
+}
+svg text { font-family: "PingFang SC", "Microsoft YaHei", sans-serif; }
