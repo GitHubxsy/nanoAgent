@@ -6,6 +6,9 @@
 成片：`exports/agent-01-papermorph.mp4`，3 分 58 秒，1080p，中文配音和可开关的中文字幕轨道。
 配套字幕：`exports/ch01.srt`。检查范围见 `QA.md`。
 
+1.15 倍速版：`exports/agent-01-papermorph-1.15x.mp4`，约 3 分 27 秒，保持人声音调，字幕同步加速，原速版保留。
+重新生成：`python3 tools/agent-first/speedup.py`。
+
 ## 内容
 
 约 4 分钟，10 段讲解：文本建议与实际行动、大脑与手脚、工具说明与执行分工、
