@@ -6,8 +6,11 @@
 成片：`exports/agent-01-papermorph.mp4`，3 分 58 秒，1080p，中文配音和可开关的中文字幕轨道。
 配套字幕：`exports/ch01.srt`。检查范围见 `QA.md`。
 
-1.15 倍速版：`exports/agent-01-papermorph-1.15x.mp4`，约 3 分 27 秒，保持人声音调，字幕同步加速，原速版保留。
-重新生成：`python3 tools/agent-first/speedup.py`。
+1.15 倍速版：`exports/agent-01-papermorph-1.15x.mp4`，约 3 分 27 秒，保持人声音调，原速版保留。
+新版字幕固定在画面底部中央，32px、单行，长句按 TTS 词时间拆为 74 条短字幕。
+字幕已烧录，避免播放器覆盖字号和位置；观看时无需再加载 SRT，以免重复显示。
+重新生成：`uv run --with imageio-ffmpeg python tools/agent-first/speedup.py`。
+此命令使用原速导出 `exports/ch01.mp4` 和 TTS 生成的 `content/agent-first/ch01/narration.zh.timings.json`，需先完成下方配音与导出步骤。
 
 [下载最终视频](exports/agent-01-papermorph-1.15x.mp4) · [下载配套字幕](exports/agent-01-papermorph-1.15x.srt)
 
