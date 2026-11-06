@@ -1,4 +1,6 @@
-exports/
+exports/*
+!exports/agent-01-papermorph-1.15x.mp4
+!exports/agent-01-papermorph-1.15x.srt
 books/*/review/
 content/**/*.mp3
 content/**/*.timings.json

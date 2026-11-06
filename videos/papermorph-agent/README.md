@@ -9,6 +9,8 @@
 1.15 倍速版：`exports/agent-01-papermorph-1.15x.mp4`，约 3 分 27 秒，保持人声音调，字幕同步加速，原速版保留。
 重新生成：`python3 tools/agent-first/speedup.py`。
 
+[下载最终视频](exports/agent-01-papermorph-1.15x.mp4) · [下载配套字幕](exports/agent-01-papermorph-1.15x.srt)
+
 ## 内容
 
 约 4 分钟，10 段讲解：文本建议与实际行动、大脑与手脚、工具说明与执行分工、
@@ -46,7 +48,7 @@ uv run --with playwright --with numpy python ~/.codex/skills/papermorph/scripts/
 ## 文件与许可
 
 - `site/agent-first/`：可独立运行的静态动画与配音。
-- `exports/`：本地 MP4 和 SRT，不提交大型渲染文件。
+- `exports/`：仅提交最终 1.15 倍速 MP4 与配套 SRT，原速版和中间文件保留本地。
 - `books/agent-first/`：风格、分镜和检查记录。
 - `site/agent-first/lib/LICENSE-Papermorph`：第三方引擎 MIT 许可。
 
